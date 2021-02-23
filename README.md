@@ -66,7 +66,11 @@ Or just download this from the gitlab download link and unzip into `per_cohort_d
 
 4. Put genotype reference file into `PerCohortPreparations/bin/hase/data/` folder. For eQTLGen phase 2 analyses, you can get this file from **here**.
 
-5. Make folder where you want to save your encoded files for sharing. This can be in the `per_cohort_data_preparations` folder or elsewhere.
+5. Make folder `help_files`.
+
+6. Put probe matches file and genotype-to-expression file into `help_files`.
+
+7. Make folder where you want to save your encoded files for sharing. This can be in the `per_cohort_data_preparations` folder or elsewhere.
 
 ### Running the conversion command
 
@@ -94,8 +98,8 @@ NXF_VER=20.10.0 ${nextflow_path}/nextflow run PerCohortDataPreparations.nf \
 --genopath '[Folder with genotype files in .h5 format]' \
 --expressionpath '[Prepared and normalised gene expression file]' \
 --covariatepath '[Covariate file]' \
---probematches '[File with matches between array probe IDs and gene names]' \
---gte '[File with sample ID matches between genotype and expression data]' \
+--probematches '../help_files/[File with matches between array probe IDs and gene names]' \
+--gte '../help_files/[File with sample ID matches between genotype and expression data]' \
 --outputpath '[Folder where to write encoded files]' \
 --studyname '[CohortName_GeneExpressionPlatform]' \
 --NrOfCovariates [Nr of covariates to include] \
