@@ -54,7 +54,7 @@ This is Nextflow pipeline per-cohort data preparations for running encoded poole
 
 1. Make a folder named `per_cohort_data_preparations` and get in there.
 
-2. Make subfolder `tools`, go into this folder and have Nextflow executable installed: https://www.nextflow.io/docs/latest/getstarted.html#installation. After that, step back up into `genotype_conversion`.
+2. Make subfolder `tools`, go into this folder and have Nextflow executable installed: https://www.nextflow.io/docs/latest/getstarted.html#installation. After that, step back up into `per_cohort_data_preparations`.
 
 3. Get the genotype conversion pipeline from here: https://gitlab.com/eqtlgen-group/ConvertVcf2Hdf5
 
@@ -62,11 +62,11 @@ You can either clone it by using git (if available in HPC):
 
 `git clone https://gitlab.com/eqtlgen-group/ConvertVcf2Hdf5`
 
-Or just download this from the gitlab download link and unzip into `genotype_conversion` folder.
+Or just download this from the gitlab download link and unzip into `per_cohort_data_preparations` folder.
 
 4. Put genotype reference file into `PerCohortPreparations/bin/hase/data/` folder. For eQTLGen phase 2 analyses, you can get this file from **here**.
 
-5. Make folder where you want to save your encoded files for sharing. This can be in the `genotype_conversion` folder or elsewhere.
+5. Make folder where you want to save your encoded files for sharing. This can be in the `per_cohort_data_preparations` folder or elsewhere.
 
 ### Running the conversion command
 
