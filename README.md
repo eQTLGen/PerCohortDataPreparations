@@ -74,7 +74,7 @@ Or just download this from the gitlab download link and unzip into `per_cohort_d
 
 ### Running the conversion command
 
-Go to folder `PerCohortPreparations` and modify the script template `submit_per_cohort_preparations_template.sh` with your input paths and .
+Go to folder `PerCohortPreparations` and modify the script template `submit_per_cohort_preparations_template.sh` with your full input paths.
 
 ```
 #!/bin/bash
@@ -83,7 +83,7 @@ Go to folder `PerCohortPreparations` and modify the script template `submit_per_
 #SBATCH -N 1
 #SBATCH --ntasks-per-node=1
 #SBATCH --mem=5G
-#SBATCH --job-name="RunHASEwNextflow"
+#SBATCH --job-name="RunDataPreparations"
 
 # Load needed system tools (Java 8 is required, one of singularity or anaconda - python 2.7 is needed,
 # depending on the method for dependancy management). The exact names of tool modules might depend on HPC.
@@ -92,19 +92,19 @@ module load python/2.7.15/native
 module load singularity/3.5.3
 module load squashfs/4.4
 
-nextflow_path=../tools/
+nextflow_path=[Path to toolfolder with nextflow]
 
 NXF_VER=20.10.0 ${nextflow_path}/nextflow run PerCohortDataPreparations.nf \
 --genopath '[Folder with genotype files in .h5 format]' \
 --expressionpath '[Prepared and normalised gene expression file]' \
 --covariatepath '[Covariate file]' \
---probematches '../help_files/[File with matches between array probe IDs and gene names]' \
---gte '../help_files/[File with sample ID matches between genotype and expression data]' \
+--probematches '[File with matches between array probe IDs and gene names]' \
+--gte '[File with sample ID matches between genotype and expression data]' \
 --outputpath '[Folder where to write encoded files]' \
 --studyname '[CohortName_GeneExpressionPlatform]' \
 --NrOfCovariates [Nr of covariates to include] \
 --profile '[cluster_slurm,singularity_profile/conda_profile]' \
--with-report PerCohortPreparationsReport.html \
+-with-report PerCohortDataPreparationsReport.html \
 -resume
 
 ```
@@ -133,15 +133,13 @@ After successful completion of the pipeline, there should be subfolder named `In
 
 Here is the estimate, how much time the conversion is expected to take.
 
-- Initial number of samples in .vcf genotype data: \~10,000
-
-- Number of samples to filter into .h5 genotype format: \~1,000
+- Number of samples: \~1,000
 
 - Infrastructure: University HPC with \~150 compute nodes
 
 - Dependency management: Singularity 
 
-- Time to run the pipeline (without wall times): \~4.5h
+- Time to run the pipeline (without wall times): \~2h
 
 - CPU hours: \~80h
 

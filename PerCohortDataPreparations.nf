@@ -267,8 +267,8 @@ process OrganizeEncodedData {
     mkdir IntermediateFilesEncoded_to_upload/EncodedPhenotypeData
     mkdir IntermediateFilesEncoded_to_upload/pd_shared
 
-    cp -r ${genotypes_to_organise}/probes IntermediateFilesEncoded_to_upload/EncodedGenotypeData/
-    cp -r ${genotypes_to_organise}/SNPQC IntermediateFilesEncoded_to_upload/
+    cp -r ${genopath}/probes IntermediateFilesEncoded_to_upload/EncodedGenotypeData/
+    cp -r ${genopath}/SNPQC IntermediateFilesEncoded_to_upload/
 
     cp -r ./${encoded}/encode_individuals/* IntermediateFilesEncoded_to_upload/EncodedGenotypeData/individuals/
     cp -r ./${encoded}/encode_genotype/* IntermediateFilesEncoded_to_upload/EncodedGenotypeData/genotype/
