@@ -287,7 +287,7 @@ process ReplaceSampleNames {
     executor 'slurm'
     clusterOptions '--job-name=ReplaceSampleNames'
 
-    publishDir "${params.outputpath}", mode: 'move', overwrite: true
+    publishDir "${params.outputpath}", mode: 'copy', overwrite: true
 
     input:
       path OrganizedFiles from OrganizedFiles
