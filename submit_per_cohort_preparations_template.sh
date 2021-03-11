@@ -23,7 +23,7 @@ NXF_VER=20.10.0 ${nextflow_path}/nextflow run PerCohortDataPreparations.nf \
 --gte '[File with sample ID matches between genotype and expression data]' \
 --outputpath '[Folder where to write encoded files]' \
 --studyname '[CohortName_GeneExpressionPlatform]' \
---NrOfCovariates [Nr of covariates to include] \
+--numcovariates [Nr of covariates to include] \
 --profile '[cluster_slurm,singularity_profile/conda_profile]' \
 -with-report PerCohortDataPreparationsReport.html \
 -resume

@@ -56,8 +56,8 @@ if (params.help){
 
 // Default parameters
 params.studyname = ''
-params.numcovariates = 20
 params.genopath = ''
+params.numcovariates = 20
 params.expressionpath = ''
 params.covariatepath = ''
 params.probematches = ''
