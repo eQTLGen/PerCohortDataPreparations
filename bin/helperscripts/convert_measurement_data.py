@@ -103,8 +103,6 @@ if args.EmpiricalProbeMappingFile != None:
   
   inp_batches = len(cols) // args.BatchSize + ( len(cols) % args.BatchSize > 0)
 
-  #inp_batches = args.NrOfBatches
-
   batches = numpy.array_split(numpy.array(x), inp_batches)
   
   # If directory exists, remove it first
@@ -121,9 +119,6 @@ if args.EmpiricalProbeMappingFile != None:
 
     # If inverse normal transformation is required, apply it to each column
     
-    # TEMP, for testing, remove later
-    # abi_output.to_csv(path_or_buf = args.OutputPath + "batch_raw" + str(i) + ".txt",  sep = "\t", index = False)
-
     if args.InverseNormalTransfrom is True:
       inv_normalised = abi_output.drop('ID', axis = 1).apply(InvNormalTransform, axis = 0, result_type = 'broadcast')
       inv_normalised.insert(loc = 0, column = 'ID', value = abi_output['ID'])

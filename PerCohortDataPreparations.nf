@@ -57,7 +57,7 @@ if (params.help){
 // Default parameters
 params.studyname = ''
 params.genopath = ''
-params.numcovariates = 20
+params.numcovariates = ''
 params.expressionpath = ''
 params.covariatepath = ''
 params.probematches = ''
@@ -117,7 +117,7 @@ process PrepareExpressionData {
     -emp ${emp} \
     -gte ${gte} \
     -o ./exp_data/ \
-    -n 1000 \
+    -n 20000 \
     -int
     """
 }
