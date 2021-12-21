@@ -26,12 +26,12 @@ Usage:
 
 nextflow run PerCohortDataPreparations.nf \
 --genopath '/Genotype folder/' \
---expressionpath 'Expression file' \
---covariatepath 'Covariate file' \
---probematches 'File with array probe matches' \
---gte 'Genotype to expression file' \
---studyname 'NameOfYourStudy' \
---outputpath '/Ooutput folder/'\
+--expressionpath '[Expression file]' \
+--covariatepath '[Covariate file]' \
+--probematches '[File with array probe matches]' \
+--gte '[Genotype to expression file]' \
+--studyname '[NameOfYourStudy]' \
+--outputpath '[/Output folder/]'\
 --numcovariates 20
 
 Mandatory arguments:
@@ -65,7 +65,7 @@ params.gte = ''
 params.outputpath = ''
 
 log.info """================================================================
-HASE per-cohort analyser v${workflow.manifest.version}"
+HASE per-cohort preparation pipeline v${workflow.manifest.version}"
 ================================================================"""
 def summary = [:]
 summary['Pipeline Version']                         = workflow.manifest.version
@@ -114,11 +114,9 @@ process PrepareExpressionData {
     """
     python $baseDir/bin/helperscripts/convert_measurement_data.py \
     -i ${expression} \
-    -emp ${emp} \
     -gte ${gte} \
     -o ./exp_data/ \
-    -n 20000 \
-    -int
+    -n 20000
     """
 }
 
