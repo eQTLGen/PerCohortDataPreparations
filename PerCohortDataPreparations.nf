@@ -205,6 +205,9 @@ process EncodeData {
     -mapper ${mapper}/ \
     -ph ${expression} \
     -mode encoding
+
+    # Remove random matrices to make back-encoding impossible
+    rm /encoded/F*
     """
 }
 
