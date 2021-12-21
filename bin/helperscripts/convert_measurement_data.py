@@ -5,10 +5,13 @@ import argparse
 import shutil
 import scipy.stats as ss
 
-parser = argparse.ArgumentParser(description = "Convert gene expression or covariate file to HASE format. In case of gene expression matrix it replaces the gene IDs with the ones in the empirical probe mapping file and chunks the table into files <=1,000 phenotypes each. It also enables to inverse normal transform each gene in the input. However, currently batching and inverse normal transformation works only when empirical probe mapping file is specified, i.e. do not work in case of covariate file is fed in.")
+parser = argparse.ArgumentParser(description = "Convert gene expression or covariate file to HASE format. In case of gene expression matrix it replaces the gene IDs with the ones in the empirical probe mapping file and chunks the table into files <=1,000 phenotypes each. It also enables to inverse normal transform each gene in the input. However, currently batching and inverse normal transformation works only when expression data is fed in, i.e. do not work in case of covariate file is fed in.")
 
 parser.add_argument('-i', '--InputFile', required = True,
                     help = "Path to input gene expression or covariate file. Can be gzipped.")
+
+parser.add_argument('-t', '--Type', required = True,
+                    help = "Type of the input. One of exp/cov")
 
 parser.add_argument('-emp', '--EmpiricalProbeMappingFile', required = False,
                     help = "Path to empiricial probe mapping file. Can be gzipped")
@@ -30,21 +33,23 @@ parser.add_argument('-nc', '--NrOfCovariates', type = int,
                     required = False,
                     help = "Nr. of covariates to include from the first column. This enables to include only first PCs to the covariate file. Defaults to all covariates in the file.")
 
-parser.add_argument('-int', '--InverseNormalTransfrom', action = 'store_true',
+parser.add_argument('-int', '--InverseNormalTransform', action = 'store_true',
   help = "Boolean specifying whether to apply inverse normal transformation to each gene (or covariate) in the table.")
 
 args = parser.parse_args()
 
 # Messages:
 print 'Gene expression or covariate file is:', args.InputFile
+print 'Type of the input file:', args.Type
 print 'Empirical probe mapping file is:', args.EmpiricalProbeMappingFile
 print 'Genotype to expression file is:', args.GenotypeToExpressionFile
 print 'Output path is:', args.OutputPath
 print 'Nr of phenotypes to add into each batch: ', args.BatchSize
-print 'Inverse normal transformation is active: ', args.InverseNormalTransfrom
-if args.NrOfCovariates is None:
-  print 'Nr of covariates to include: using all covariates in file'
-else:
+print 'Inverse normal transformation is active: ', args.InverseNormalTransform
+if args.Type == "cov":
+  if args.NrOfCovariates is None:
+    print 'Nr of covariates to include: using all covariates in file'
+  else:
     print 'Nr of covariates to include: ', args.NrOfCovariates
 
 # Define function for inverse normal transformation.
@@ -55,28 +60,34 @@ def InvNormalTransform(x):
   InvNorm = ss.norm.ppf((ss.rankdata(x) - 0.5) / len(x))
   return InvNorm.tolist()
 
-# Prepare gene expression matrix
+# Prepare gene expression or covariate matrix
 df = pd.read_csv(args.InputFile, sep = "\t")
 
+if args.Type == "exp":
 # Prepare emprical probe mapping matrix
-if args.EmpiricalProbeMappingFile != None:
-  emp = pd.read_csv(args.EmpiricalProbeMappingFile, sep = "\t")
-  emp = emp.drop(axis = 1, labels = "Correlation")
+  if args.EmpiricalProbeMappingFile != None:
+    emp = pd.read_csv(args.EmpiricalProbeMappingFile, sep = "\t")
+    emp = emp.drop(axis = 1, labels = "Correlation")
 
-  # Merge
-  df["-"] = df["-"].astype('str')
-  emp["Probe"] = emp["Probe"].astype('str')
-  df2 = pd.merge(df, emp, left_on = "-", right_on = "Probe", how = "inner")
-  df2["-"] = df2["Ensembl"]
-  df2 = df2.drop(['Ensembl', 'Probe'], axis = 1)
-  
-  rownames = list(df2['-'])
-  df2.index = rownames
-  df2 = df2.drop('-', axis = 1)
+    # Merge
+    df["-"] = df["-"].astype('str')
+    emp["Probe"] = emp["Probe"].astype('str')
+    df2 = pd.merge(df, emp, left_on = "-", right_on = "Probe", how = "inner")
+    df2["-"] = df2["Ensembl"]
+    df2 = df2.drop(['Ensembl', 'Probe'], axis = 1)
+    rownames = list(df2['-'])
+    df2.index = rownames
+    df2 = df2.drop('-', axis = 1)
+  else:
+    df2 = df
+    df2["-"] = df2["-"].astype('str')
+    rownames = list(df2['-'])
+    df2.index = rownames
+    df2 = df2.drop('-', axis = 1)
   
   # Transpose
   df2 = df2.transpose()
-  
+
   df2['Pcode'] = df2.index.values
   df2['Pcode'] = df2['Pcode'].astype('str')
   
@@ -114,20 +125,18 @@ if args.EmpiricalProbeMappingFile != None:
   for i in range(0, inp_batches):
     abi_batch = list(batches[i])
     abi_batch.insert(0, 0)
-    
     abi_output = df2[df2.columns[abi_batch]]
 
     # If inverse normal transformation is required, apply it to each column
-    
-    if args.InverseNormalTransfrom is True:
+    if args.InverseNormalTransform is True:
       inv_normalised = abi_output.drop('ID', axis = 1).apply(InvNormalTransform, axis = 0, result_type = 'broadcast')
       inv_normalised.insert(loc = 0, column = 'ID', value = abi_output['ID'])
       abi_output = inv_normalised
-
-    abi_output.to_csv(path_or_buf = args.OutputPath + "batch" + str(i) + ".txt",  sep = "\t", index = False)
+    
+    abi_output.to_csv(path_or_buf = args.OutputPath + "/batch" + str(i) + ".txt",  sep = "\t", index = False)
     print(str(i) + " Nr. of traits added: " + str(abi_output.shape[1] - 1))
   
-if args.EmpiricalProbeMappingFile == None:
+if args.Type == "cov":
   df2 = df
   df2['Pcode'] = df2['-']
   df2['Pcode'] = df2['Pcode'].astype('str')
@@ -152,6 +161,7 @@ if args.EmpiricalProbeMappingFile == None:
   # If directory exists, remove it first
   if os.path.isdir(args.OutputPath) == True:
     shutil.rmtree(args.OutputPath)
-    
-  os.mkdir(args.OutputPath)
-  df2.to_csv(path_or_buf = args.OutputPath + "covariates_HASE_format" +".txt",  sep = "\t", index = False)
+    os.mkdir(args.OutputPath)
+  df2.to_csv(path_or_buf = args.OutputPath + "/covariates_HASE_format" +".txt",  sep = "\t", index = False)
+if args.Type not in ["cov", "exp"]:
+  print "Input type has to be on of: exp, cov!"
