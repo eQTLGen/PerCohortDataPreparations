@@ -97,12 +97,6 @@ covariates = Channel.fromPath(params.covariatepath)
 
 process PrepareExpressionData {
 
-    cpus 1
-    memory '3 GB'
-    time '1h'
-    executor 'slurm'
-    clusterOptions '--job-name=PrepareExpressionData'
-
     input:
       path expression from expression
       path emp from params.probematches
@@ -121,12 +115,6 @@ process PrepareExpressionData {
 }
 
 process PrepareCovariateData {
-
-    cpus 1
-    memory '3 GB'
-    time '1h'
-    executor 'slurm'
-    clusterOptions '--job-name=PrepareExpressionData'
 
     input:
       path covariates from covariates
@@ -150,12 +138,6 @@ process PrepareCovariateData {
 
 process CreateMapperFiles {
 
-    cpus 1
-    memory '30 GB'
-    time '12h'
-    executor 'slurm'
-    clusterOptions '--job-name=CreateMapperFiles'
-
     input:
       path genopath from genotypes_to_mapper
       val studyname from params.studyname
@@ -176,12 +158,6 @@ process CreateMapperFiles {
 }
 
 process EncodeData {
-
-    cpus 1
-    memory '50 GB'
-    time '5h'
-    executor 'slurm'
-    clusterOptions '--job-name=EncodeData'
 
     input:
       path mapper from mapper_to_encode
@@ -213,12 +189,6 @@ process EncodeData {
 
 process PartialDerivatives {
 
-    cpus 1
-    memory '10 GB'
-    time '5h'
-    executor 'slurm'
-    clusterOptions '--job-name=PartialDerivatives'
-
     input:
       path mapper from mapper_to_pd
       path genopath from genotypes_to_pd
@@ -242,12 +212,6 @@ process PartialDerivatives {
 }
 
 process OrganizeEncodedData {
-
-    cpus 1
-    memory '2 GB'
-    time '10m'
-    executor 'slurm'
-    clusterOptions '--job-name=OrganizeEncodedData'
 
     input:
       path pd from pd
@@ -282,22 +246,21 @@ process OrganizeEncodedData {
 
 process ReplaceSampleNames {
 
-    cpus 1
-    memory '10 GB'
-    time '20m'
-    executor 'slurm'
-    clusterOptions '--job-name=ReplaceSampleNames'
-
     publishDir "${params.outputpath}", mode: 'copy', overwrite: true
 
     input:
       path OrganizedFiles from OrganizedFiles
+      val studyname from params.studyname
 
     output:
       path IntermediateFilesEncoded_to_upload into IntermediateFilesEncodedSampleIdsReplaced_to_upload
 
     """
     python $baseDir/bin/helperscripts/replace_sample_names.py -IntFileEnc ${OrganizedFiles}
+
+    # Calculate md5sum for all the files to share and add write this out
+    find -type f -exec md5sum '{}' \; ; > ${studyname}_OrganizedFiles.md5
+  
     """
 }
 

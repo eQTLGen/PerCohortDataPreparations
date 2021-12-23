@@ -1,6 +1,3 @@
-# TODO: integrate this into the pipeline
-# TODO: assure that new sample names are in the same order for each of the fixed data files.
-
 import pandas as pd
 import h5py
 import argparse
@@ -8,7 +5,7 @@ import numpy as np
 import tables
 from pandas import HDFStore
 import os
-from natsort import natsorted 
+from natsort import natsorted
 
 parser = argparse.ArgumentParser(description = "Replace sample IDs in the encoded data to pseudonymized sample IDs. The format is Cohort__SampleNumber. It assumes that data is organised to the folder IntermediateFilesEncoded by previous Nextflow step and it overwrites the files in this folder.")
 
