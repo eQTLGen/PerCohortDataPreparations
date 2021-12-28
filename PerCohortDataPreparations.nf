@@ -90,7 +90,7 @@ log.info summary.collect { k,v -> "${k.padRight(21)}: $v" }.join("\n")
 log.info "======================================================="
 
 Genotypes = Channel.fromPath(params.genopath)
-Genotypes.into{genotypes_to_mapper; genotypes_to_encoding; genotypes_to_pd; genotypes_to_organise}
+Genotypes.into{genotypes_to_mapper; genotypes_to_encoding; genotypes_to_pd; genotypes_to_genpc; genotypes_to_organise}
 
 expression = Channel.fromPath(params.expressionpath)
 covariates = Channel.fromPath(params.covariatepath)
@@ -211,6 +211,60 @@ process PartialDerivatives {
     """
 }
 
+process PrepareGenRegPcs {
+    // TODO: continue here
+
+    input:
+      path covariates from covariates_to_pd
+
+    output:
+      path cov_folder
+      path pheno_folder
+
+    """
+    # Split covariate file to two pieces: covariates (4 first MDS) and 100 first PCs
+    awk -F'\t' '{ print $1, $2, $3, $4 }' > covariate_MDS.txt
+    awk -F'\t' '{ print $1, $5..$105 }' > pheno_expPC.txt
+
+    mkdir cov_folder
+    mkdir pheno_folder
+
+    mv covariate_MDS.txt cov_folder/.
+    mv pheno_expPC.txt pheno_folder/.
+    """
+}
+
+process RunGenRegPcs {
+
+    input:
+      path genopath from genotypes_to_genpc
+      path covariates from cov_folder
+      path phenotypes from pheno_folder
+      val studyname from params.studyname
+      each Chunk from 1..100
+
+    output:
+      *_GenRegPcs.txt into genetic_pcs
+
+    """
+    python $baseDir/bin/hase/hase.py \
+    -g ${genopath} \
+    -study_name ${studyname} \
+    -o output \
+    -ph pheno_folder \
+    -cov cov_folder \
+    -th 4.42 \  # for now hardcoded threshold, corresponding to ~2*10-5 for N=100 and 9.974149e-06 for N=10000
+    -mode regression \ 
+    -maf 0.0 \
+    -node 100 ${Chunk} \ # where N is number of current job, and 100 is total number of jobs. 
+    -cluster "y"
+
+    python $baseDir/bin/hase/tools/analyzer.py \ 
+    -r output \
+    -o ${Chunk}_GenRegPcs.txt
+    """
+}
+
 process OrganizeEncodedData {
 
     input:
@@ -218,6 +272,8 @@ process OrganizeEncodedData {
       path encoded from encoded
       path mapper from mapper_to_organize
       path genopath from genotypes_to_organise
+      val studyname from params.studyname
+      path genetic_pcs from genetic_pcs.collectFile(name: 'GenRegPcs.txt', keepHeader: true, sort: true)
 
     output:
       path '*' into OrganizedFiles
@@ -241,6 +297,8 @@ process OrganizeEncodedData {
     cp -r ./${mapper} IntermediateFilesEncoded_to_upload/
 
     cp ./${pd}/*.npy IntermediateFilesEncoded_to_upload/pd_shared/
+
+    mv GenRegPcs.txt IntermediateFilesEncoded_to_upload/{studyname}_GenRegPcs.txt
     """
 }
 
