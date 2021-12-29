@@ -244,7 +244,7 @@ process RunGenRegPcs {
       each Chunk from 1..100
 
     output:
-      *_GenRegPcs.txt into genetic_pcs
+      '*_GenRegPcs.txt' into genetic_pcs
 
     """
     python $baseDir/bin/hase/hase.py \
@@ -253,7 +253,7 @@ process RunGenRegPcs {
     -o output \
     -ph pheno_folder \
     -cov cov_folder \
-    -th 4.42 \  # for now hardcoded threshold, corresponding to ~2*10-5 for N=100 and 9.974149e-06 for N=10000
+    -th 3 \  # for now hardcoded threshold, will be further filtered to correspond P=1e-5
     -mode regression \ 
     -maf 0.0 \
     -node 100 ${Chunk} \ # where N is number of current job, and 100 is total number of jobs. 
@@ -261,7 +261,7 @@ process RunGenRegPcs {
 
     python $baseDir/bin/hase/tools/analyzer.py \ 
     -r output \
-    -o ${Chunk}_GenRegPcs.txt
+    -o ${Chunk}_GenRegPcs.txt # TODO: check if it is needed to also calculate and include df
     """
 }
 
