@@ -222,9 +222,9 @@ process PrepareGenRegPcs {
       path pheno_folder
 
     """
-    # Split covariate file to two pieces: covariates (4 first MDS) and 100 first PCs
-    awk -F'\t' '{ print $1, $2, $3, $4 }' > covariate_MDS.txt
-    awk -F'\t' '{ print $1, $5..$105 }' > pheno_expPC.txt
+    # Split covariate file to two pieces: covariates (10 first MDS) and 100 first PCs
+    awk -F'\t' '{ print \$1, \$2, \$3, \$4, \$5, \$6, \$7, \$8, \$9, \$10, \$11}' ${covariates} > covariate_MDS.txt
+    awk 'BEGIN{FS=OFS="\t"}{printf \$1"\t"}{for(i=12;i<=NF;i++) printf \$i"\t"; print ""}' ${covariates} > pheno_expPC.txt
 
     mkdir cov_folder
     mkdir pheno_folder
