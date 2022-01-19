@@ -92,16 +92,19 @@ if args.Type == "exp":
   df2['Pcode'] = df2['Pcode'].astype('str')
   
   # Replace expression codes with genotype codes
-  gte = pd.read_csv(args.GenotypeToExpressionFile, sep = "\t", header = None, names = ["Vcode", "Pcode"])
-  gte['Pcode'] = gte['Pcode'].astype('str')
-  
-  df2 = pd.merge(df2, gte, left_on = 'Pcode', right_on = 'Pcode', how = 'inner')
-  
-  # Rearrange columns
-  cols = df2.columns.tolist()
-  cols = cols[-1:] + cols[:-2]
-  df2 = df2[cols]
-  df2 = df2.rename(columns = {"Vcode": "ID"})
+  if args.GenotypeToExpressionFile != None:
+        gte = pd.read_csv(args.GenotypeToExpressionFile, sep = "\t", header = None, names = ["Vcode", "Pcode"])
+        gte['Pcode'] = gte['Pcode'].astype('str')
+
+        df2 = pd.merge(df2, gte, left_on = 'Pcode', right_on = 'Pcode', how = 'inner')
+        
+        # Rearrange columns
+        cols = df2.columns.tolist()
+        cols = cols[-1:] + cols[:-2]
+        df2 = df2[cols]
+        df2 = df2.rename(columns = {"Vcode": "ID"})
+  else:
+        df2 = df2.rename(columns = {"Pcode": "ID"})
   
   print("There are " + str(df2.shape[1]) + " columns in the file.")
   
@@ -141,18 +144,20 @@ if args.Type == "cov":
   df2['Pcode'] = df2['-']
   df2['Pcode'] = df2['Pcode'].astype('str')
   
-  # Replace expression codes with Vcodes
-  gte = pd.read_csv(args.GenotypeToExpressionFile, sep = "\t", header = None, names = ["Vcode", "Pcode"])
-  gte['Pcode'] = gte['Pcode'].astype('str')
-  
-  df2 = pd.merge(df2, gte, left_on = 'Pcode', right_on = 'Pcode', how = 'inner')
-  
-  # Rearrange columns
-  cols = df2.columns.tolist()
-  cols = cols[-1:] + cols[:-2]
-  cols.pop(1)
-  df2 = df2[cols]
-  df2 = df2.rename(columns = {"Vcode": "ID"})
+  # Replace expression codes with genotype codes
+  if args.GenotypeToExpressionFile != None:
+        gte = pd.read_csv(args.GenotypeToExpressionFile, sep = "\t", header = None, names = ["Vcode", "Pcode"])
+        gte['Pcode'] = gte['Pcode'].astype('str')
+
+        df2 = pd.merge(df2, gte, left_on = 'Pcode', right_on = 'Pcode', how = 'inner')
+        
+        # Rearrange columns
+        cols = df2.columns.tolist()
+        cols = cols[-1:] + cols[:-2]
+        df2 = df2[cols]
+        df2 = df2.rename(columns = {"Vcode": "ID"})
+  else:
+        df2 = df2.rename(columns = {"Pcode": "ID"})
   
   if args.NrOfCovariates != None:
     covariates_to_include = args.NrOfCovariates + 1

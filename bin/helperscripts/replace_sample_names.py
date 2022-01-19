@@ -17,7 +17,7 @@ args = parser.parse_args()
 print 'Folder with files to share is: ' + args.IntermediateFilesEncoded 
 
 # Get name of the cohort
-cohort = os.listdir(args.IntermediateFilesEncoded + '/EncodedGenotypeData/probes/')
+cohort = os.listdir(args.IntermediateFilesEncoded + '/EncodedGenotypeData/individuals/')
 cohort = [x for x in cohort if x.endswith('.h5')]
 cohort = cohort[0]
 cohort = cohort[:-3]

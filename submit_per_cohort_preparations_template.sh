@@ -13,17 +13,16 @@ module load python/2.7.15/native
 module load singularity/3.5.3
 module load squashfs/4.4
 
-nextflow_path=[Path to toolfolder with nextflow]
+nextflow_path=[Path to tool folder with nextflow]
 
 NXF_VER=20.10.0 ${nextflow_path}/nextflow run PerCohortDataPreparations.nf \
 --genopath '[Folder with genotype files in .h5 format]' \
 --expressionpath '[Prepared and normalised gene expression file]' \
 --covariatepath '[Covariate file]' \
---probematches '[File with matches between array probe IDs and gene names]' \
 --gte '[File with sample ID matches between genotype and expression data]' \
 --outputpath '[Folder where to write encoded files]' \
 --studyname '[CohortName_GeneExpressionPlatform]' \
 --numcovariates [Nr of covariates to include] \
---profile '[cluster_slurm,singularity_profile/conda_profile]' \
+--profile [slurm,singularity] \
 -with-report PerCohortDataPreparationsReport.html \
 -resume
