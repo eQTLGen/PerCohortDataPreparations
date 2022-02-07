@@ -16,13 +16,9 @@ module load squashfs/4.4
 nextflow_path=[Path to tool folder with nextflow]
 
 NXF_VER=20.10.0 ${nextflow_path}/nextflow run PerCohortDataPreparations.nf \
---genopath '[Folder with genotype files in .h5 format]' \
---expressionpath '[Prepared and normalised gene expression file]' \
---covariatepath '[Covariate file]' \
---gte '[File with sample ID matches between genotype and expression data]' \
---outputpath '[Folder where to write encoded files]' \
---studyname '[CohortName_GeneExpressionPlatform]' \
---numcovariates [Nr of covariates to include] \
---profile [slurm,singularity] \
+--hdf5 [Folder with genotype files in .h5 format] \
+--qcdata [Folder containing QCd data, inc. expression and covariates]
+--outdir [Folder where to write encoded files] \
+--profile slurm,singularity \
 -with-report PerCohortDataPreparationsReport.html \
 -resume

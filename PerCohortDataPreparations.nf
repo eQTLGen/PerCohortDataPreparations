@@ -1,19 +1,7 @@
 #!/usr/bin/env nextflow
-
-// Things this pipeline does:
-// 1. Replaces the sample IDs in the input gene expression file with those as provided in genotype-to-expression file.
-// 2. Chunks gene expression file into chunks.
-// 3. Constructs mapper files for genotype data (currently assumes the file named explicitly 1000Gp1v3.ref.gz in the data folder of tool path).
-// 4. Encodes the data.
-// 5. Calculates partial derivatives.
-// 6. Replaces sample IDs in the encoded data with mock IDs in the form of Cohort__SampleNumber.
-// 7. Organise files needed for sharing.
-
-
 def helpmessage() {
 
 log.info"""
-
 PerCohortDataPreparations
 ==============================================
 Pipeline for running data preparation and encoding steps in individual datasets, in order to enable centralized meta analysis over all datasets.
@@ -23,22 +11,14 @@ This pipeline mostly recapitulates the steps as outlined in HASE wiki page (http
 Usage:
 
 nextflow run PerCohortDataPreparations.nf \
---genopath '/Genotype folder/' \
---expressionpath '[Expression file]' \
---covariatepath '[Covariate file]' \
---gte '[Genotype to expression file]' \
---studyname '[NameOfYourStudy]' \
---outputpath '[/Output folder/]'\
---numcovariates 20
+--hdf5 '/Genotype folder/' \
+--qcdata '/Path to QCd data/' \
+--outdir '[/Output folder/]'
 
 Mandatory arguments:
---genopath        Path to input genotype folder. It has to be in hdf5 format and contain at least 3 subfolders (genotypes, probes, individuals).
---expressionpath  Path to the gene expression file. May be gzipped.
---covariatepath   Path to covariate file. May be gzipped.
---gte             Path to the file connecting genotype data sample IDs with gene expression matrix sample IDs.
---studyname       Name of the study. Needs to match with the study name as in the file names in genotype .hdf5 folder.
---outputpath      Path to output folder where encoded, prepared and organised data is written.
---numcovariates   Number of covariates to correct the analysis for. It defaults to 20 first columns in the covariate file.
+--hdf5            Path to input genotype folder. It has to be in hdf5 format and contain at least 3 subfolders (genotypes, probes, individuals).
+--qcdata          Path to quality-controlled data where expression and covariate files are. This is the output of DataQc pipeline.
+--outdir          Path to output folder where encoded, prepared and organised data is written.
 
 
 """.stripIndent()
@@ -51,12 +31,8 @@ if (params.help){
 }
 
 // Default parameters
-params.studyname = ''
-params.genopath = ''
-params.numcovariates = ''
-params.expressionpath = ''
-params.covariatepath = ''
-params.gte = ''
+params.hdf5 = ''
+params.qcdata = ''
 params.outputpath = ''
 
 log.info """================================================================
@@ -72,65 +48,33 @@ summary['Script dir']                               = workflow.projectDir
 summary['Config Profile']                           = workflow.profile
 summary['Container Engine']                         = workflow.containerEngine
 if(workflow.containerEngine) summary['Container']   = workflow.container
-summary['Input genotype directory']                 = params.genopath
-summary['Input gene expression file']               = params.expressionpath
-summary['Input covariate file']                     = params.covariatepath
-summary['Input genotype-to-expression file']        = params.gte
-summary['Number of covariates']                     = params.numcovariates
-summary['Output directory']                         = params.outputpath
-summary['Study names']                              = params.studyname
+summary['Input genotype directory']                 = params.hdf5
+summary['Input folder QCd data']                    = params.qcdata
+summary['Output directory']                         = params.outdir
 
 log.info summary.collect { k,v -> "${k.padRight(21)}: $v" }.join("\n")
 log.info "======================================================="
 
-Genotypes = Channel.fromPath(params.genopath)
-Genotypes.into{genotypes_to_mapper; genotypes_to_encoding; genotypes_to_pd; genotypes_to_perm_encoding; genotypes_to_perm_pd; genotypes_to_genpc; genotypes_to_organise}
+Genotypes = Channel.fromPath(params.hdf5)
+Genotypes.into{genotypes_to_cohortname; genotypes_to_mapper; genotypes_to_encoding; genotypes_to_pd; genotypes_to_perm_encoding; genotypes_to_perm_pd; genotypes_to_genpc; genotypes_to_organise}
 
-expression = Channel.fromPath(params.expressionpath)
-covariates = Channel.fromPath(params.covariatepath)
+expression = Channel.fromPath(params.qcdata + '/outputfolder_exp/exp_data_QCd/exp_data_preprocessed.txt').
+into{expression_to_encoding; expression_to_pd; expression_to_permutation}
+covariates = Channel.fromPath(params.qcdata + 'CovariatePCs.txt').into{covariates_to_pd; covariates_to_permutation; covariates_to_genpc}
 
-process PrepareExpressionData {
+// Parse study name
 
-    input:
-      path expression from expression
-      path gte from params.gte
+process ParseCohortName {
 
-    output:
-      path './exp_data/' into expression_to_encoding, expression_to_pd, expression_to_permutation
+  input:
+    path geno from genotypes_to_cohortname
 
-    """
-    mkdir exp_data
+  output:
+    val cohortname into studyname
 
-    python $baseDir/bin/helperscripts/convert_measurement_data.py \
-    -t exp \
-    -i ${expression} \
-    -gte ${gte} \
-    -o ./exp_data/ \
-    -n 20000
-    """
-}
-
-process PrepareCovariateData {
-
-    input:
-      path covariates from covariates
-      path gte from params.gte
-      val num_of_covariates from params.numcovariates
-
-    output:
-      path './covariate_data/' into covariates_to_pd, covariates_to_permutation, covariates_to_genpc
-
-    """
-    mkdir covariate_data
-
-    python $baseDir/bin/helperscripts/convert_measurement_data.py \
-    -t cov \
-    -i ${covariates} \
-    -gte ${gte}\
-    -o ./covariate_data/ \
-    -n 1 \
-    -nc ${num_of_covariates}
-    """
+  """
+  cohortname=\$(ls individuals/*h5 | sed -e 's/.h5//g')
+  """
 
 }
 
@@ -138,7 +82,7 @@ process CreateMapperFiles {
 
     input:
       path genopath from genotypes_to_mapper
-      val studyname from params.studyname
+      val studyname
 
     output:
       path './mapper/' into mapper_to_encode, mapper_to_pd, mapper_to_perm_encode, mapper_to_perm_pd, mapper_to_organize
@@ -161,7 +105,7 @@ process EncodeData {
       path mapper from mapper_to_encode
       path genopath from genotypes_to_encoding
       path expression from expression_to_encoding
-      val studyname from params.studyname
+      val studyname
 
     output:
       file './encoded/' into encoded
@@ -192,7 +136,7 @@ process PartialDerivatives {
       path genopath from genotypes_to_pd
       path expression from expression_to_pd
       path covariates from covariates_to_pd
-      val studyname from params.studyname
+      val studyname
 
     output:
       file './pd/' into pd
@@ -237,7 +181,7 @@ process EncodeDataPermuted {
       path mapper from mapper_to_perm_encode
       path genopath from genotypes_to_perm_encoding
       path expression from perm_exp_to_encoding
-      val studyname from params.studyname
+      val studyname
 
     output:
       file './encoded_permuted/' into encoded_permuted
@@ -266,7 +210,7 @@ process PartialDerivativesPermuted {
       path genopath from genotypes_to_perm_pd
       path expression from perm_exp_to_pd
       path covariates from perm_cov_to_pd
-      val studyname from params.studyname
+      val studyname
 
     output:
       file './pd_permuted/' into pd_permuted
@@ -315,7 +259,7 @@ process RunGenRegPcs {
       path genopath from genotypes_to_genpc
       path covariates from cov_folder
       path phenotypes from pheno_folder
-      val studyname from params.studyname
+      val studyname
       each Chunk from 1..100
 
     output:
@@ -363,7 +307,8 @@ process OrganizeEncodedData {
       path encoded_permuted from encoded_permuted
       path mapper from mapper_to_organize
       path genopath from genotypes_to_organise
-      val studyname from params.studyname
+      path qc_data from params.qcdata
+      val studyname
       file genetic_pcs from genetic_pcs.collectFile(name: 'GenRegPcs.txt', keepHeader: true, sort: true)
 
     output:
@@ -398,8 +343,28 @@ process OrganizeEncodedData {
 
     # Additional files needed for diagnostics
     cp -r ./${mapper} ${studyname}_IntermediateFilesEncoded_to_upload/
-    cp -r ${genopath}/SNPQC ${studyname}_IntermediateFilesEncoded_to_upload/
     
+    # Summary files and plots from QCd data folder
+    mkdir ${studyname}_IntermediateFilesEncoded_to_upload/SumStats
+    mkdir ${studyname}_IntermediateFilesEncoded_to_upload/SumStats/expression/
+    mkdir ${studyname}_IntermediateFilesEncoded_to_upload/SumStats/expression/plots
+    # Gene expression summary statistics (mean, median, sd, etc.)
+    cp -r ${qc_data}/outputfolder_exp/exp_data_summary/raw_gene_summary.txt ${studyname}_IntermediateFilesEncoded_to_upload/SumStats/expression/.
+    cp -r ${qc_data}/outputfolder_exp/exp_data_summary/processed_gene_summary.txt ${studyname}_IntermediateFilesEncoded_to_upload/SumStats/expression/.
+    # plots from QC report
+    cp -r ${qc_data}/outputfolder_exp/plots/*pdf ${studyname}_IntermediateFilesEncoded_to_upload/SumStats/expression/plots/.
+
+    mkdir ${studyname}_IntermediateFilesEncoded_to_upload/SumStats/genotypes/
+    mkdir ${studyname}_IntermediateFilesEncoded_to_upload/SumStats/genotypes/plots
+    # genotype QC summary
+    cp -r ${genopath}/SNPQC ${studyname}_IntermediateFilesEncoded_to_upload/SumStats/genotypes/.
+    # plots from QC report
+    cp -r ${qc_data}/outputfolder_gen/gen_plots/*pdf ${studyname}_IntermediateFilesEncoded_to_upload/SumStats/genotypes/plots/.
+  
+    # Data QC report
+    cp -r ${qc_data}/Report_DataQc* ${studyname}_IntermediateFilesEncoded_to_upload/.
+    
+    # Genetically regulated PCs
     mv GenRegPcs.txt ${studyname}_GenRegPcs.txt
     gzip -f ${studyname}_GenRegPcs.txt
     cp ${studyname}_GenRegPcs.txt.gz ${studyname}_IntermediateFilesEncoded_to_upload/.
