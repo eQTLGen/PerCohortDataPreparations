@@ -17,8 +17,8 @@ nextflow_path=[Path to tool folder with nextflow]
 
 NXF_VER=20.10.0 ${nextflow_path}/nextflow run PerCohortDataPreparations.nf \
 --hdf5 [Folder with genotype files in .h5 format] \
---qcdata [Folder containing QCd data, inc. expression and covariates]
+--qcdata [Folder containing QCd data, inc. expression and covariates] \
 --outdir [Folder where to write encoded files] \
---profile slurm,singularity \
+-profile slurm,singularity \
 -with-report PerCohortDataPreparationsReport.html \
 -resume

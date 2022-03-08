@@ -11,9 +11,9 @@ This pipeline mostly recapitulates the steps as outlined in HASE wiki page (http
 Usage:
 
 nextflow run PerCohortDataPreparations.nf \
---hdf5 '/Genotype folder/' \
---qcdata '/Path to QCd data/' \
---outdir '[/Output folder/]'
+--hdf5 [Genotype hdf5 folder] \
+--qcdata [Path to QCd data] \
+--outdir [Output folder]
 
 Mandatory arguments:
 --hdf5            Path to input genotype folder. It has to be in hdf5 format and contain at least 3 subfolders (genotypes, probes, individuals).
@@ -56,11 +56,15 @@ log.info summary.collect { k,v -> "${k.padRight(21)}: $v" }.join("\n")
 log.info "======================================================="
 
 Genotypes = Channel.fromPath(params.hdf5)
-Genotypes.into{genotypes_to_cohortname; genotypes_to_mapper; genotypes_to_encoding; genotypes_to_pd; genotypes_to_perm_encoding; genotypes_to_perm_pd; genotypes_to_genpc; genotypes_to_organise}
+Genotypes.into{genotypes_to_cohortname; genotypes_to_mapper; genotypes_to_encoding; genotypes_to_pd; genotypes_to_perm_encoding; genotypes_to_perm_pd; genotypes_to_genpc; 
+genotypes_to_organise_data}
+
+snpqc = Channel.fromPath(params.hdf5 + '/SNPQC/')
+snp_probes = Channel.fromPath(params.hdf5 + '/probes/*')
 
 expression = Channel.fromPath(params.qcdata + '/outputfolder_exp/exp_data_QCd/exp_data_preprocessed.txt').
 into{expression_to_encoding; expression_to_pd; expression_to_permutation}
-covariates = Channel.fromPath(params.qcdata + 'CovariatePCs.txt').into{covariates_to_pd; covariates_to_permutation; covariates_to_genpc}
+covariates = Channel.fromPath(params.qcdata + '/CovariatePCs.txt').into{covariates_to_pd; covariates_to_permutation; covariates_to_genpc}
 
 // Parse study name
 
@@ -70,27 +74,31 @@ process ParseCohortName {
     path geno from genotypes_to_cohortname
 
   output:
-    val cohortname into studyname
+    env cohortname into cohortname
 
   """
-  cohortname=\$(ls individuals/*h5 | sed -e 's/.h5//g')
+  cohortname=\$(ls ${geno}/individuals/*h5 | sed -e 's/.h5//g' | sed -e 's/.*\\///g')
+  echo \$cohortname
   """
 
 }
+
+studyname = cohortname.first().into{studyname_mapper; studyname_encode; studyname_pd; studyname_encode_permuted; studyname_pd_permuted; 
+studyname_GenRegPcs; studyname_OrganizeEncodedData; studyname_ReplaceSampleNames}
 
 process CreateMapperFiles {
 
     input:
       path genopath from genotypes_to_mapper
-      val studyname
+      val studyname from studyname_mapper
 
     output:
       path './mapper/' into mapper_to_encode, mapper_to_pd, mapper_to_perm_encode, mapper_to_perm_pd, mapper_to_organize
 
     """
-    python $baseDir/bin/hase/tools/mapper.py \
+    python2 $baseDir/bin/hase/tools/mapper.py \
     -g ${genopath} \
-    -study_name ${studyname} \
+    -study_name $studyname \
     -o ./mapper/ \
     -chunk 35000000 \
     -ref_name 1000Gp1v3_ref \
@@ -105,7 +113,7 @@ process EncodeData {
       path mapper from mapper_to_encode
       path genopath from genotypes_to_encoding
       path expression from expression_to_encoding
-      val studyname
+      val studyname from studyname_encode
 
     output:
       file './encoded/' into encoded
@@ -114,14 +122,16 @@ process EncodeData {
     echo ${genopath}
     echo ${mapper}
     echo ${expression}
-    echo ${params.studyname}
 
-    python $baseDir/bin/hase/hase.py \
+    mkdir input_expression
+    mv ${expression} input_expression/.
+
+    python2 $baseDir/bin/hase/hase.py \
     -g ${genopath} \
     -study_name ${studyname} \
     -o ./encoded/ \
     -mapper ${mapper}/ \
-    -ph ${expression} \
+    -ph input_expression \
     -mode encoding
 
     # Remove random matrices to make back-encoding impossible
@@ -136,17 +146,23 @@ process PartialDerivatives {
       path genopath from genotypes_to_pd
       path expression from expression_to_pd
       path covariates from covariates_to_pd
-      val studyname
+      val studyname from studyname_pd
 
     output:
       file './pd/' into pd
 
     """
-    python $baseDir/bin/hase/hase.py \
+    mkdir input_expression
+    mkdir input_covariates
+
+    mv ${expression} input_expression/.
+    mv ${covariates} input_covariates/.
+    
+    python2 $baseDir/bin/hase/hase.py \
     -g ${genopath}/ \
     -study_name ${studyname} \
-    -ph ${expression}/ \
-    -cov ${covariates}/ \
+    -ph input_expression \
+    -cov input_covariates \
     -mapper ${mapper}/ \
     -o ./pd/ \
     -mode single-meta
@@ -168,8 +184,8 @@ process PermuteData {
   mkdir shuffled_covariates_folder
 
   Rscript --vanilla $baseDir/bin/helperscripts/shuffle_sample_ids.R \
-  ${expression}/batch0.txt \
-  ${covariates}/covariates_HASE_format.txt \
+  ${expression} \
+  ${covariates} \
   ./shuffled_expression_folder/shuffled_expression.txt \
   ./shuffled_covariates_folder/shuffled_covariates.txt
   """
@@ -181,13 +197,13 @@ process EncodeDataPermuted {
       path mapper from mapper_to_perm_encode
       path genopath from genotypes_to_perm_encoding
       path expression from perm_exp_to_encoding
-      val studyname
+      val studyname from studyname_encode_permuted
 
     output:
       file './encoded_permuted/' into encoded_permuted
 
     """
-    python $baseDir/bin/hase/hase.py \
+    python2 $baseDir/bin/hase/hase.py \
     -g ${genopath} \
     -study_name ${studyname} \
     -o ./encoded/ \
@@ -210,13 +226,13 @@ process PartialDerivativesPermuted {
       path genopath from genotypes_to_perm_pd
       path expression from perm_exp_to_pd
       path covariates from perm_cov_to_pd
-      val studyname
+      val studyname from studyname_pd_permuted
 
     output:
       file './pd_permuted/' into pd_permuted
 
     """
-    python $baseDir/bin/hase/hase.py \
+    python2 $baseDir/bin/hase/hase.py \
     -g ${genopath}/ \
     -study_name ${studyname} \
     -ph ${expression}/ \
@@ -240,8 +256,8 @@ process PrepareGenRegPcs {
 
     """
     # Split covariate file to two pieces: covariates (10 first MDS) and 100 first PCs
-    awk -F'\t' '{ print \$1, \$2, \$3, \$4, \$5, \$6, \$7, \$8, \$9, \$10, \$11}' ${covariates}/covariates_HASE_format.txt > covariate_MDS.txt
-    awk 'BEGIN{FS=OFS="\t"}{printf \$1"\t"}{for(i=12;i<=NF-1;i++) printf \$i"\t"}{print \$NF}' ${covariates}/covariates_HASE_format.txt > pheno_expPC.txt
+    awk -F'\t' '{ print \$1, \$2, \$3, \$4, \$5, \$6, \$7, \$8, \$9, \$10, \$11}' ${covariates} > covariate_MDS.txt
+    awk 'BEGIN{FS=OFS="\t"}{printf \$1"\t"}{for(i=12;i<=NF-1;i++) printf \$i"\t"}{print \$NF}' ${covariates} > pheno_expPC.txt
 
     mkdir cov_folder
     mkdir pheno_folder
@@ -259,14 +275,14 @@ process RunGenRegPcs {
       path genopath from genotypes_to_genpc
       path covariates from cov_folder
       path phenotypes from pheno_folder
-      val studyname
+      val studyname from studyname_GenRegPcs
       each Chunk from 1..100
 
     output:
       file '*_GenRegPcs.txt' into genetic_pcs
 
     """
-    python $baseDir/bin/hase/hase.py \
+    python2 $baseDir/bin/hase/hase.py \
     -g ${genopath} \
     -study_name ${studyname} \
     -o output \
@@ -286,7 +302,7 @@ process RunGenRegPcs {
     N_cov=\$(awk -F' ' '{print NF; exit}' cov_folder/covariate_MDS.txt)
     df=\$((N - N_cov - 1))
 
-    python $baseDir/bin/helperscripts/HaseOutputNumpyAnalyzer.py \
+    python2 $baseDir/bin/helperscripts/HaseOutputNumpyAnalyzer.py \
     -i "output/node${Chunk}_*.npy" \
     -df \${df} \
     -o ${Chunk}_GenRegPcs_temp.txt \
@@ -306,9 +322,11 @@ process OrganizeEncodedData {
       path pd_permuted from pd_permuted
       path encoded_permuted from encoded_permuted
       path mapper from mapper_to_organize
-      path genopath from genotypes_to_organise
+      path genopath from genotypes_to_organise_data
+      path snp_probes from snp_probes
+      path snpqc from snpqc
       path qc_data from params.qcdata
-      val studyname
+      val studyname from studyname_OrganizeEncodedData
       file genetic_pcs from genetic_pcs.collectFile(name: 'GenRegPcs.txt', keepHeader: true, sort: true)
 
     output:
@@ -321,7 +339,7 @@ process OrganizeEncodedData {
     mkdir ${studyname}_IntermediateFilesEncoded_to_upload/empirical/EncodedPhenotypeData
     mkdir ${studyname}_IntermediateFilesEncoded_to_upload/empirical/pd_shared
 
-    cp -r ${genopath}/probes ${studyname}_IntermediateFilesEncoded_to_upload/empirical/EncodedGenotypeData/
+    cp -r ${snp_probes} ${studyname}_IntermediateFilesEncoded_to_upload/empirical/EncodedGenotypeData/
    
     cp ./${encoded}/encode_individuals/* ${studyname}_IntermediateFilesEncoded_to_upload/empirical/EncodedGenotypeData/individuals/
     cp ./${encoded}/encode_genotype/* ${studyname}_IntermediateFilesEncoded_to_upload/empirical/EncodedGenotypeData/genotype/
@@ -343,6 +361,9 @@ process OrganizeEncodedData {
 
     # Additional files needed for diagnostics
     cp -r ./${mapper} ${studyname}_IntermediateFilesEncoded_to_upload/
+
+    # SNP QC file
+    cp -r ${snpqc} ${studyname}_IntermediateFilesEncoded_to_upload/empirical/EncodedGenotypeData/.
     
     # Summary files and plots from QCd data folder
     mkdir ${studyname}_IntermediateFilesEncoded_to_upload/SumStats
@@ -352,12 +373,12 @@ process OrganizeEncodedData {
     cp -r ${qc_data}/outputfolder_exp/exp_data_summary/raw_gene_summary.txt ${studyname}_IntermediateFilesEncoded_to_upload/SumStats/expression/.
     cp -r ${qc_data}/outputfolder_exp/exp_data_summary/processed_gene_summary.txt ${studyname}_IntermediateFilesEncoded_to_upload/SumStats/expression/.
     # plots from QC report
-    cp -r ${qc_data}/outputfolder_exp/plots/*pdf ${studyname}_IntermediateFilesEncoded_to_upload/SumStats/expression/plots/.
+    cp -r ${qc_data}/outputfolder_exp/exp_plots/*pdf ${studyname}_IntermediateFilesEncoded_to_upload/SumStats/expression/plots/.
 
     mkdir ${studyname}_IntermediateFilesEncoded_to_upload/SumStats/genotypes/
     mkdir ${studyname}_IntermediateFilesEncoded_to_upload/SumStats/genotypes/plots
     # genotype QC summary
-    cp -r ${genopath}/SNPQC ${studyname}_IntermediateFilesEncoded_to_upload/SumStats/genotypes/.
+    cp -r ${snpqc} ${studyname}_IntermediateFilesEncoded_to_upload/SumStats/genotypes/.
     # plots from QC report
     cp -r ${qc_data}/outputfolder_gen/gen_plots/*pdf ${studyname}_IntermediateFilesEncoded_to_upload/SumStats/genotypes/plots/.
   
@@ -373,19 +394,19 @@ process OrganizeEncodedData {
 
 process ReplaceSampleNames {
 
-    publishDir "${params.outputpath}", mode: 'copy', overwrite: true
+    publishDir "${params.outdir}", mode: 'copy', overwrite: true
 
     input:
       path OrganizedFiles from OrganizedFiles
-      val studyname from params.studyname
+      val studyname from studyname_ReplaceSampleNames
 
     output:
       path "${studyname}_IntermediateFilesEncoded_to_upload" into IntermediateFilesEncodedSampleIdsReplaced_to_upload
       file "*.md5" into md5sumfile
 
     """
-    python $baseDir/bin/helperscripts/replace_sample_names.py -IntFileEnc ${studyname}_IntermediateFilesEncoded_to_upload/empirical/
-    python $baseDir/bin/helperscripts/replace_sample_names.py -IntFileEnc ${studyname}_IntermediateFilesEncoded_to_upload/permuted/
+    python2 $baseDir/bin/helperscripts/replace_sample_names.py -IntFileEnc ${studyname}_IntermediateFilesEncoded_to_upload/empirical/
+    python2 $baseDir/bin/helperscripts/replace_sample_names.py -IntFileEnc ${studyname}_IntermediateFilesEncoded_to_upload/permuted/
 
     find ${studyname}_IntermediateFilesEncoded_to_upload/ -type f -print0 | xargs -0 md5sum > ${studyname}_OrganizedFiles.md5
     """
