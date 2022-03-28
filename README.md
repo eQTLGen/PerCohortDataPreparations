@@ -59,7 +59,7 @@ genotypes_hdf5=[Folder with genotype files in .h5 format]
 qc_data_folder=[Folder containing QCd data, inc. expression and covariates]
 output_path=[Path to the output folder]
 
-NXF_VER=20.10.0 ${nextflow_path}/nextflow run PerCohortDataPreparations.nf \
+NXF_VER=21.10.6 ${nextflow_path}/nextflow run PerCohortDataPreparations.nf \
 --hdf5 ${genotypes_hdf5} \
 --qcdata ${qc_data_folder} \
 --outdir ${output_path} \
