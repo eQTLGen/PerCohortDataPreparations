@@ -39,7 +39,7 @@ Or just download this from the gitlab/github download link and unzip.
 
 Go to folder `PerCohortPreparations` and modify the script template `submit_per_cohort_preparations_template.sh` with your input paths. This is an example template for Slurm scheduler
 
-```
+```bash
 #!/bin/bash
 
 #SBATCH --time=24:00:00
