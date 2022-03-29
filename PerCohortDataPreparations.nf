@@ -25,11 +25,6 @@ Mandatory arguments:
 
 }
 
-if (params.help){
-    helpmessage()
-    exit 0
-}
-
 // Default parameters
 params.hdf5 = ''
 params.qcdata = ''
