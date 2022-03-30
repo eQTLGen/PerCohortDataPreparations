@@ -51,15 +51,24 @@ log.info summary.collect { k,v -> "${k.padRight(21)}: $v" }.join("\n")
 log.info "======================================================="
 
 Genotypes = Channel.fromPath(params.hdf5)
+.ifEmpty { exit 1, "Genotype folder not found: ${params.hdf5}" }
+
 Genotypes.into{genotypes_to_cohortname; genotypes_to_mapper; genotypes_to_encoding; genotypes_to_pd; genotypes_to_perm_encoding; genotypes_to_perm_pd; genotypes_to_genpc; 
 genotypes_to_organise_data}
 
 snpqc = Channel.fromPath(params.hdf5 + '/SNPQC/')
+.ifEmpty { exit 1, "SNPQC file not found!" }
+
 snp_probes = Channel.fromPath(params.hdf5 + '/probes/*')
+.ifEmpty { exit 1, "SNP probes file not found!" }
 
 expression = Channel.fromPath(params.qcdata + '/outputfolder_exp/exp_data_QCd/exp_data_preprocessed.txt').
-into{expression_to_encoding; expression_to_pd; expression_to_permutation}
-covariates = Channel.fromPath(params.qcdata + '/CovariatePCs.txt').into{covariates_to_pd; covariates_to_permutation; covariates_to_genpc}
+.ifEmpty { exit 1, "Expression data not found!" }
+.into{expression_to_encoding; expression_to_pd; expression_to_permutation}
+
+covariates = Channel.fromPath(params.qcdata + '/CovariatePCs.txt').
+.ifEmpty { exit 1, "Covariate data not found!" }
+.into{covariates_to_pd; covariates_to_permutation; covariates_to_genpc}
 
 // Parse study name
 
