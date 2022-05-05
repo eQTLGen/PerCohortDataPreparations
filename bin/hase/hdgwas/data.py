@@ -400,7 +400,7 @@ class MetaPhenotype(object):
                 result[k] = values[~r, i]
             return result, np.array(map.dic.keys())[~r]
 
-        self.chunk_size = 10000
+        self.chunk_size = 5000
         self.exclude = None
         self.include = None
         self.name = None
@@ -443,7 +443,7 @@ class MetaPhenotype(object):
             self.order, self.phen_names = _check(self.mapper, self.keys, index=self.keep_index,
                                                  allow_missingness=allow_missingness)
             self.n_phenotypes = len(self.order[self.keys[0]])
-            print ('Loaded {} common phenotypes for meta-analysis'.format(self.n_phenotypes))
+            print ('Loaded {} phenotypes for meta-analysis'.format(self.n_phenotypes))
             self.processed = 0
         else:
             if not protocol.enable:
@@ -493,7 +493,7 @@ class MetaPhenotype(object):
         # We want to adjust the
 
         for study_index in self.keys:
-            chunked_order[study_index] = self.order[study_index][np.where(self.phen_names == phenotype_names)]
+            chunked_order[study_index] = self.order[study_index][np.where(np.in1d(self.phen_names, phenotype_names))[0]]
 
         return chunked_order
 
@@ -526,6 +526,32 @@ class MetaPhenotype(object):
                 a = b
 
         return phenotype, self.phen_names[start:finish]
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        # Get the next phenotype chunk.
+        with Timer() as t_ph:
+            # Phen names is the
+            phenotype, phenotype_names = self.get()
+            phenotype_indices = self.get_phenotype_indices(phenotype_names)
+        print("Time to get PH {}s".format(t_ph.secs))
+
+        # If the phenotype type is None, the loop is done...
+        if isinstance(phenotype, type(None)):
+            # Reset the processed phenotypes when the loop is done.
+            # With the next chunk of SNPs we need to do these again
+            self.processed = 0
+            # The encoded interactions are also processed at the
+            # same rate as the phenotypes.
+            # Reset the number of processed values for this as well.
+            print('All phenotypes processed!')
+            raise StopIteration
+        print("Merged phenotype shape {}".format(phenotype.shape))
+
+        return phenotype, phenotype_names, phenotype_indices
+
 
 
 class MetaParData(object):
@@ -1058,7 +1084,7 @@ class CSVFolder(Folder):
 
             self._data = Data()
             self._data.chunk_size = 1000
-            self._data._data = df[df.columns[1:]].as_matrix()
+            self._data._data = df[df.columns[1:]].values
             self._data.id = np.array(df[df.columns[0]])
             if self._id is None:
                 self._id = self._data.id

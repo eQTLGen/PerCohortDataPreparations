@@ -91,7 +91,7 @@ class HaseAnalyser(Analyser):
         self.t_stat = None
         self.p_value = None
         self.betas = None
-        self.standard_error = None
+        self.SE = None
         self.DF = None
         self.n_studies = None
         self.probes_path = {}
@@ -122,8 +122,8 @@ class HaseAnalyser(Analyser):
         -   The 3rd dimension of this array represents all of the phenotypes
             that are tested for.
         """
-        if self.t_stat.shape == self.standard_error.shape:
-            return self.t_stat * self.standard_error
+        if self.t_stat.shape == self.SE.shape:
+            return self.t_stat * self.SE
 
     def summary(self):
 
@@ -208,9 +208,10 @@ class HaseAnalyser(Analyser):
         if (len(mask[0]) != 0):
             print ('Saving results to {}'.format(save_path))
             t_save = self.t_stat[mask[0], mask[1], mask[2]]
-            se = self.standard_error[mask[0], mask[1], mask[2]]
+
+            se = self.SE[mask[0], mask[1], mask[2]]
             result = {'phenotype': phen_names[mask[2]], 't-stat': t_save, 'index': self.rsid[mask[0]], 'SE': se,
-                      'MAF': self.maf[mask[0]]}
+                      'MAF': self.MAF[mask[0]]}
 
             if not self.cluster:
                 np.save(os.path.join(save_path, str(self.result_index) + 'result.npy'), result)
@@ -416,11 +417,8 @@ class Mapper(object):
                     self.chunk_pool.append([self.chunk_pool[-1][1], self.n_keys])
             self.chunk_pool = self.chunk_pool[::-1]
 
-            print self.chunk_pool
-
         if len(self.chunk_pool) != 0:
             ch = self.chunk_pool.pop()
-            print ch
             return ch
         else:
             return None
@@ -747,8 +745,6 @@ class Mapper(object):
             self.include_ind = np.setxor1d(self.include_ind, self.exclude_ind)
         else:
             self.include_ind = np.arange(len(self.values))
-
-        all_indices_for_values_with_all_studies_available = None
 
         if allow_missingness:
             # Get the indices for those values that are present in ANY studies
