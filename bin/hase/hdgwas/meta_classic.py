@@ -271,7 +271,7 @@ class ClassicMetaAnalyser:
         :param association_indices: A list with for each study an array of variant indices, indicating at what position
         variants are located
         """
-        standard_errors = np.stack([cohort.analyser.standard_error for cohort in self.cohort_list])
+        standard_errors = np.stack([cohort.analyser.SE for cohort in self.cohort_list])
         return standard_errors
 
     def get_sample_sizes(self):
@@ -507,7 +507,7 @@ class CohortAnalyser:
 
             self.analyser.t_stat = \
                 self.complete_output_with_missingness(np.array([]))
-            self.analyser.standard_error = \
+            self.analyser.SE = \
                 self.complete_output_with_missingness(np.array([]))
         else:
 
@@ -542,7 +542,7 @@ class CohortAnalyser:
             number_of_constant_terms, degrees_of_freedom)
 
         self.analyser.t_stat = self.complete_output_with_missingness(t_stat[:, 0, :])
-        self.analyser.standard_error = self.complete_output_with_missingness(standard_error[:, 0, :])
+        self.analyser.SE = self.complete_output_with_missingness(standard_error[:, 0, :])
         # Now we have to store the t-stat, and standard_error in a data structure from
         # which we can do the meta analysis.
 
