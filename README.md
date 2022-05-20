@@ -37,7 +37,7 @@ Or just download this from the gitlab/github download link and unzip.
 
 ### Running the data preparation command
 
-Go to folder `PerCohortPreparations` and modify the script template `submit_per_cohort_preparations_template.sh` with your input paths. This is an example template for Slurm scheduler
+Go to folder `PerCohortPreparations` and modify the script template `submit_per_cohort_preparations_template.sh` with your input paths. Below is an example template for Slurm scheduler. Some of the paths are pre-filled, assuming that you follow [eQTLGen phase II cookbook](https://github.com/eQTLGen/eQTLGen-phase-2-cookbook/wiki/eQTLGen-phase-II-cookbook) and its recommended folder structure, however you can also use custom paths.
 
 ```bash
 #!/bin/bash
@@ -48,16 +48,20 @@ Go to folder `PerCohortPreparations` and modify the script template `submit_per_
 #SBATCH --mem=5G
 #SBATCH --job-name="RunDataPreparations"
 
-#These are needed modules in UT HPC to get singularity and Nextflow running. Replace with appropriate ones for your HPC.
+# These are needed modules in UT HPC to get Singularity and Nextflow running.
+# Replace with appropriate ones for your HPC.
 module load java-1.8.0_40
 module load singularity/3.5.3
 module load squashfs/4.4
 
-nextflow_path=[path to folder with Nextflow]
+# If you follow the eQTLGen phase II cookbook and analysis folder structure,
+# some of the following paths are pre-filled.
+# https://github.com/eQTLGen/eQTLGen-phase-2-cookbook/wiki/eQTLGen-phase-II-cookbook
+nextflow_path=../../tools
 
-genotypes_hdf5=[Folder with genotype files in .h5 format]
-qc_data_folder=[Folder containing QCd data, inc. expression and covariates]
-output_path=[Path to the output folder]
+genotypes_hdf5=../../3_ConvertVcf2Hdf5/output # Folder with genotype files in .hdf5 format
+qc_data_folder=../../1_DataQC/output # Folder containing QCd data, inc. expression and covariates
+output_path=../output
 
 NXF_VER=21.10.6 ${nextflow_path}/nextflow run PerCohortDataPreparations.nf \
 --hdf5 ${genotypes_hdf5} \

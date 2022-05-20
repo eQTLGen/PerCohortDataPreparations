@@ -6,15 +6,19 @@
 #SBATCH --mem=5G
 #SBATCH --job-name="RunDataPreparations"
 
-# These are needed modules in UT HPC to get singularity and Nextflow running. Replace with appropriate ones for your HPC.
+# These are needed modules in UT HPC to get Singularity and Nextflow running.
+# Replace with appropriate ones for your HPC.
 module load java-1.8.0_40
 module load singularity/3.5.3
 module load squashfs/4.4
 
+# If you follow the eQTLGen phase II cookbook and analysis folder structure,
+# some of the following paths are pre-filled.
+# https://github.com/eQTLGen/eQTLGen-phase-2-cookbook/wiki/eQTLGen-phase-II-cookbook
 nextflow_path=../../tools
 
-genotypes_hdf5=[Folder with genotype files in .hdf5 format]
-qc_data_folder=[Folder containing QCd data, inc. expression and covariates]
+genotypes_hdf5=../../3_ConvertVcf2Hdf5/output # Folder with genotype files in .hdf5 format
+qc_data_folder=../../1_DataQC/output # Folder containing QCd data, inc. expression and covariates
 output_path=../output
 
 NXF_VER=21.10.6 ${nextflow_path}/nextflow run PerCohortDataPreparations.nf \
