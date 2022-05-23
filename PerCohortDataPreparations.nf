@@ -286,10 +286,12 @@ process RunGenRegPcs {
       file '*_GenRegPcs.txt' into genetic_pcs
 
     """
+    mv output ${studyname}
+
     python2 $baseDir/bin/hase/hase.py \
-    -g ${genopath} \
+    -g ${studyname} \
     -study_name ${studyname} \
-    -o gen_reg_output \
+    -o output \
     -ph pheno_folder \
     -cov cov_folder \
     -th 3 \
@@ -307,7 +309,7 @@ process RunGenRegPcs {
     df=\$((N - N_cov - 1))
 
     python2 $baseDir/bin/helperscripts/HaseOutputNumpyAnalyzer.py \
-    -i "gen_reg_output/node${Chunk}_*.npy" \
+    -i "output/node${Chunk}_*.npy" \
     -df \${df} \
     -o ${Chunk}_GenRegPcs_temp.txt \
     -sref $baseDir/bin/hase/data/1000Gp1v3.ref.gz
