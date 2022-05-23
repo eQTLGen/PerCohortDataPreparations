@@ -62,11 +62,11 @@ snpqc = Channel.fromPath(params.hdf5 + '/SNPQC/')
 snp_probes = Channel.fromPath(params.hdf5 + '/probes/*')
 .ifEmpty { exit 1, "SNP probes file not found!" }
 
-expression = Channel.fromPath(params.qcdata + '/outputfolder_exp/exp_data_QCd/exp_data_preprocessed.txt').
+expression = Channel.fromPath(params.qcdata + '/outputfolder_exp/exp_data_QCd/exp_data_preprocessed.txt')
 .ifEmpty { exit 1, "Expression data not found!" }
 .into{expression_to_encoding; expression_to_pd; expression_to_permutation}
 
-covariates = Channel.fromPath(params.qcdata + '/CovariatePCs.txt').
+covariates = Channel.fromPath(params.qcdata + '/CovariatePCs.txt')
 .ifEmpty { exit 1, "Covariate data not found!" }
 .into{covariates_to_pd; covariates_to_permutation; covariates_to_genpc}
 
