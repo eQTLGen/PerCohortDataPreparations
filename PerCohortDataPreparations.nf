@@ -70,6 +70,9 @@ covariates = Channel.fromPath(params.qcdata + '/CovariatePCs.txt')
 .ifEmpty { exit 1, "Covariate data not found!" }
 .into{covariates_to_pd; covariates_to_permutation; covariates_to_genpc}
 
+qcdata = Channel.fromPath(params.qcdata)
+.ifEmpty { exit 1, "Report etc. path not found!" }
+
 // Parse study name
 
 process ParseCohortName {
@@ -331,7 +334,7 @@ process OrganizeEncodedData {
       path genopath from genotypes_to_organise_data
       path snp_probes from snp_probes
       path snpqc from snpqc
-      path qc_data from params.qcdata
+      path qc_data, stageAs: 'output2' from qcdata
       val studyname from studyname_OrganizeEncodedData
       file genetic_pcs from genetic_pcs.collectFile(name: 'GenRegPcs.txt', keepHeader: true, sort: true)
 
