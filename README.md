@@ -26,7 +26,7 @@ Specifically, this pipeline performs the following steps:
 
 ### Setup of the pipeline
 You can either clone it by using git (if available in HPC):
-`git clone TBA`
+`git clone https://github.com/eQTLGen/PerCohortDataPreparatons.git`
 
 Or just download this from the gitlab/github download link and unzip.
 
