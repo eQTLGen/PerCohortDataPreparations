@@ -7,7 +7,7 @@ Specifically, this pipeline performs the following steps:
 - Uses 1000G 30x reference file to create variant mapper files (to make the SNPs from different studies jointly analyzable in central site).
 - Encodes genotype and gene expression data, and deletes the random matrix used for encoding. This means that no information for individual study participant is obtainable from encoded data, even for the original cohort analyst.
 - Calculates partial derivatives, needed for running the eQTL mapping.
-- Permutes the sample links on the unencoded data, encodes and calculates partial derivtives for the permuted data. This is needed for obtaining in-sample LD estimates for downstream analyses in the central site (useful for e.g. multiple testing corrections and fine-mapping).
+- Permutes the sample links on the unencoded data, encodes and calculates partial derivatives for the permuted data. This is needed for obtaining in-sample LD estimates for downstream analyses in the central site (useful for e.g. multiple testing corrections and fine-mapping).
 - Associates expression PCs with genotypes, writes out suggestive associations (P<1×10^-5^). This enables us to make informed decision which covariates to include into encoded HASE model in the central site and control to for the collider effects.
 - Replaces original sample IDs in the encoded data with "CohortName_index".
 - Collects several summary reports, QC reports and diagnostic plots from the output of [data QC pipeline](#1-data-qc).
