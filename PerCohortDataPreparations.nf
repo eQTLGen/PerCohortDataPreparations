@@ -108,7 +108,7 @@ process CreateMapperFiles {
     -study_name $studyname \
     -o ./mapper/ \
     -chunk 35000000 \
-    -ref_name 1000Gp1v3_ref \
+    -ref_name 1000G-30x_ref \
     -ref_chunk 1000000 \
     -probe_chunk 1000000
     """
