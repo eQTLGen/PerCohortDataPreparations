@@ -315,7 +315,7 @@ process RunGenRegPcs {
     -i "output/node${Chunk}_*.npy" \
     -df \${df} \
     -o ${Chunk}_GenRegPcs_temp.txt \
-    -sref $baseDir/bin/hase/data/1000Gp1v3.ref.gz
+    -sref $baseDir/bin/hase/data/1000G-30x.ref.gz
 
     # Filter in only 1e-5
     awk '{if(NR == 1) {print \$0} else {if(\$9 < 1e-5) { print }}}' ${Chunk}_GenRegPcs_temp.txt > ${Chunk}_GenRegPcs.txt
