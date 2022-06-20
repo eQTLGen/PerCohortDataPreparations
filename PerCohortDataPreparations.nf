@@ -138,6 +138,7 @@ process EncodeData {
     -study_name ${studyname} \
     -o ./encoded/ \
     -mapper ${mapper}/ \
+    -ref_name 1000G-30x_ref \
     -ph input_expression \
     -mode encoding
 
@@ -171,6 +172,7 @@ process PartialDerivatives {
     -ph input_expression \
     -cov input_covariates \
     -mapper ${mapper}/ \
+    -ref_name 1000G-30x_ref \
     -o ./pd/ \
     -mode single-meta
     """
@@ -215,6 +217,7 @@ process EncodeDataPermuted {
     -study_name ${studyname} \
     -o ./encoded/ \
     -mapper ${mapper}/ \
+    -ref_name 1000G-30x_ref \
     -ph ${expression} \
     -mode encoding
 
@@ -245,6 +248,7 @@ process PartialDerivativesPermuted {
     -ph ${expression}/ \
     -cov ${covariates}/ \
     -mapper ${mapper}/ \
+    -ref_name 1000G-30x_ref \
     -o ./pd/ \
     -mode single-meta
 
