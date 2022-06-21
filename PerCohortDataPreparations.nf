@@ -59,7 +59,7 @@ genotypes_to_organise_data}
 snpqc = Channel.fromPath(params.hdf5 + '/SNPQC/')
 .ifEmpty { exit 1, "SNPQC file not found!" }
 
-snp_probes = Channel.fromPath(params.hdf5 + '/probes/*')
+snp_probes = Channel.fromPath(params.hdf5 + '/probes/')
 .ifEmpty { exit 1, "SNP probes file not found!" }
 
 expression = Channel.fromPath(params.qcdata + '/outputfolder_exp/exp_data_QCd/exp_data_preprocessed.txt')
