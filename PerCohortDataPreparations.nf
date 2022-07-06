@@ -140,8 +140,7 @@ process EncodeData {
     -mapper ${mapper}/ \
     -ref_name 1000G-30x_ref \
     -ph input_expression \
-    -mode encoding \
-    -ref_name 1000G-30x_ref
+    -mode encoding
 
     # Remove random matrices to make back-encoding impossible
     rm ./encoded/F*
@@ -175,8 +174,7 @@ process PartialDerivatives {
     -mapper ${mapper}/ \
     -ref_name 1000G-30x_ref \
     -o ./pd/ \
-    -mode single-meta \
-    -ref_name 1000G-30x_ref
+    -mode single-meta
     """
 }
 
@@ -221,8 +219,7 @@ process EncodeDataPermuted {
     -mapper ${mapper}/ \
     -ref_name 1000G-30x_ref \
     -ph ${expression} \
-    -mode encoding \
-    -ref_name 1000G-30x_ref
+    -mode encoding
 
     # Remove random matrices to make back-encoding impossible
     rm ./encoded/F*
@@ -253,8 +250,7 @@ process PartialDerivativesPermuted {
     -mapper ${mapper}/ \
     -ref_name 1000G-30x_ref \
     -o ./pd/ \
-    -mode single-meta \
-    -ref_name 1000G-30x_ref
+    -mode single-meta
 
     mv pd pd_permuted
     """
