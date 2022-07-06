@@ -59,7 +59,7 @@ genotypes_to_organise_data}
 snpqc = Channel.fromPath(params.hdf5 + '/SNPQC/')
 .ifEmpty { exit 1, "SNPQC file not found!" }
 
-snp_probes = Channel.fromPath(params.hdf5 + '/probes/*')
+snp_probes = Channel.fromPath(params.hdf5 + '/probes/')
 .ifEmpty { exit 1, "SNP probes file not found!" }
 
 expression = Channel.fromPath(params.qcdata + '/outputfolder_exp/exp_data_QCd/exp_data_preprocessed.txt')
@@ -138,6 +138,7 @@ process EncodeData {
     -study_name ${studyname} \
     -o ./encoded/ \
     -mapper ${mapper}/ \
+    -ref_name 1000G-30x_ref \
     -ph input_expression \
     -mode encoding \
     -ref_name 1000G-30x_ref
@@ -172,6 +173,7 @@ process PartialDerivatives {
     -ph input_expression \
     -cov input_covariates \
     -mapper ${mapper}/ \
+    -ref_name 1000G-30x_ref \
     -o ./pd/ \
     -mode single-meta \
     -ref_name 1000G-30x_ref
@@ -217,6 +219,7 @@ process EncodeDataPermuted {
     -study_name ${studyname} \
     -o ./encoded/ \
     -mapper ${mapper}/ \
+    -ref_name 1000G-30x_ref \
     -ph ${expression} \
     -mode encoding \
     -ref_name 1000G-30x_ref
@@ -248,6 +251,7 @@ process PartialDerivativesPermuted {
     -ph ${expression}/ \
     -cov ${covariates}/ \
     -mapper ${mapper}/ \
+    -ref_name 1000G-30x_ref \
     -o ./pd/ \
     -mode single-meta \
     -ref_name 1000G-30x_ref
