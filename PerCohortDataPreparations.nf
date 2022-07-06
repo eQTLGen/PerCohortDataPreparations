@@ -139,7 +139,8 @@ process EncodeData {
     -o ./encoded/ \
     -mapper ${mapper}/ \
     -ph input_expression \
-    -mode encoding
+    -mode encoding \
+    -ref_name 1000G-30x_ref
 
     # Remove random matrices to make back-encoding impossible
     rm ./encoded/F*
@@ -172,7 +173,8 @@ process PartialDerivatives {
     -cov input_covariates \
     -mapper ${mapper}/ \
     -o ./pd/ \
-    -mode single-meta
+    -mode single-meta \
+    -ref_name 1000G-30x_ref
     """
 }
 
@@ -216,7 +218,8 @@ process EncodeDataPermuted {
     -o ./encoded/ \
     -mapper ${mapper}/ \
     -ph ${expression} \
-    -mode encoding
+    -mode encoding \
+    -ref_name 1000G-30x_ref
 
     # Remove random matrices to make back-encoding impossible
     rm ./encoded/F*
@@ -246,7 +249,8 @@ process PartialDerivativesPermuted {
     -cov ${covariates}/ \
     -mapper ${mapper}/ \
     -o ./pd/ \
-    -mode single-meta
+    -mode single-meta \
+    -ref_name 1000G-30x_ref
 
     mv pd pd_permuted
     """
@@ -289,7 +293,7 @@ process RunGenRegPcs {
       file '*_GenRegPcs.txt' into genetic_pcs
 
     """
-    mv output ${studyname}
+    [ ! -d ${studyname} ] && [ ! -L ${studyname} ] && mv ${genopath} ${studyname}
 
     python2 $baseDir/bin/hase/hase.py \
     -g ${studyname} \
