@@ -26,7 +26,7 @@ exp_suff <- exp
 
 # For covariates: keep the link between expression IDs and expression PC IDs and shuffle the link with genotypes.
 # For 10 first MDSs keep the link with genotypes unchanged and shuffle the link with expression IDs.
-cov_suff_expPC <- cov[, c(1, 11:111), with = FALSE]
+cov_suff_expPC <- cov[, c(1, 12:111), with = FALSE]
 cov_suff_genPC <- cov[, c(1, 2:11), with = FALSE]
 
 exp_suff$ID <- sample(exp_suff$ID, length(exp_suff$ID))
