@@ -29,6 +29,7 @@ Mandatory arguments:
 params.hdf5 = ''
 params.qcdata = ''
 params.outputpath = ''
+params.permute = 'ues'
 
 log.info """================================================================
 HASE per-cohort preparation pipeline v${workflow.manifest.version}"
@@ -130,7 +131,7 @@ process EncodeData {
     echo ${mapper}
     echo ${expression}
 
-    mkdir input_expression
+    mkdir -p input_expression
     mv ${expression} input_expression/.
 
     python2 $baseDir/bin/hase/hase.py \
@@ -160,8 +161,8 @@ process PartialDerivatives {
       file './pd/' into pd
 
     """
-    mkdir input_expression
-    mkdir input_covariates
+    mkdir -p input_expression
+    mkdir -p input_covariates
 
     mv ${expression} input_expression/.
     mv ${covariates} input_covariates/.
@@ -184,13 +185,16 @@ process PermuteData {
     path expression from expression_to_permutation
     path covariates from covariates_to_permutation
 
+  when:
+    params.permute == "ues"
+
   output:
     path 'shuffled_expression_folder' into perm_exp_to_encoding, perm_exp_to_pd
     path 'shuffled_covariates_folder' into perm_cov_to_encoding, perm_cov_to_pd
 
   """
-  mkdir shuffled_expression_folder
-  mkdir shuffled_covariates_folder
+  mkdir -p shuffled_expression_folder
+  mkdir -p shuffled_covariates_folder
 
   Rscript --vanilla $baseDir/bin/helperscripts/shuffle_sample_ids.R \
   ${expression} \
@@ -270,8 +274,8 @@ process PrepareGenRegPcs {
     awk -F'\t' '{ print \$1, \$2, \$3, \$4, \$5, \$6, \$7, \$8, \$9, \$10, \$11}' ${covariates} > covariate_MDS.txt
     awk 'BEGIN{FS=OFS="\t"}{printf \$1"\t"}{for(i=12;i<=NF-1;i++) printf \$i"\t"}{print \$NF}' ${covariates} > pheno_expPC.txt
 
-    mkdir cov_folder
-    mkdir pheno_folder
+    mkdir -p cov_folder
+    mkdir -p pheno_folder
 
     mv covariate_MDS.txt cov_folder/.
     mv pheno_expPC.txt pheno_folder/.
