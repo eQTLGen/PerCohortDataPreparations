@@ -378,9 +378,6 @@ process OrganizeEncodedData {
 
     # Additional files needed for diagnostics
     cp -r ./${mapper} ${studyname}_IntermediateFilesEncoded_to_upload/
-
-    # SNP QC file
-    cp -r ${snpqc} ${studyname}_IntermediateFilesEncoded_to_upload/empirical/EncodedGenotypeData/.
     
     # Summary files and plots from QCd data folder
     mkdir ${studyname}_IntermediateFilesEncoded_to_upload/SumStats
