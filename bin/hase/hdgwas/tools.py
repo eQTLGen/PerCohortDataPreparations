@@ -586,7 +586,7 @@ class Mapper(object):
 
         print ('You loaded values for {} studies and {} test values'.format(self.n_study, self.n_keys))
 
-        if self.include is not None or self.exclude is not None:
+        if self.include is not None or self.exclude is not None or True:
             self.reference = Reference(self.reference_name)
             self.reference.load_index()
 
