@@ -179,6 +179,8 @@ def main(argv=None):
 				else:
 					del_counter_ref[r]=np.append(del_counter_ref[r], match_key)
 			if len(flip_df):
+				raise ValueError('Encountered at least {} flips while zero flips are expected. '
+								 'Something went wrong...'.format(len(flip_df)))
 				flip_key=np.append(flip_key,flip_df.counter_ref)
 				flip_index=np.append(flip_index,flip_df.counter_prob)
 				if del_counter_ref.get(r) is None:

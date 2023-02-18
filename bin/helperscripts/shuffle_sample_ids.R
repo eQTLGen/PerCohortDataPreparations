@@ -7,10 +7,11 @@ setDTthreads(8)
 # do not set seed
 # set.seed(123)
 
-exp <- fread(args[1], header = TRUE)
-cov <- fread(args[2], header = TRUE)
+exp <- fread(args[1], header = TRUE, colClasses = list(character = 1))
+cov <- fread(args[2], header = TRUE, colClasses = list(character = 1))
 
 colnames(exp)[1] <- "ID"
+colnames(exp)[1] <- "SampleID"
 
 # Take the intersection of samples over two datasets
 exp <- exp[exp$ID %in% cov$SampleID, ]
