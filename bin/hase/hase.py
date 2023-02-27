@@ -4,6 +4,8 @@ import sys
 import os
 import numpy as np
 
+from memory_profiler import profile
+
 from config import MAPPER_CHUNK_SIZE, basedir, CONVERTER_SPLIT_SIZE, PYTHON_PATH
 from hdgwas.meta_classic import CohortAnalyser
 from hdgwas.meta_classic import ClassicMetaAnalyser
