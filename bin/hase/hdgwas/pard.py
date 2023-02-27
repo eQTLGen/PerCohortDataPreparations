@@ -50,15 +50,7 @@ def merge_PD(path, max_node, study_name):
 @profile
 def partial_derivatives(save_path=None, COV=None, PHEN=None, GEN=None, INTERACTION=None,
                         MAP=None, MAF=None, R2=None, B4_flag=False, study_name=None, intercept=True):
-    if INTERACTION:
-        row_index, ids = study_indexes(phenotype=PHEN.folder._data,
-                                       genotype=GEN.folder._data,
-                                       covariates=COV.folder._data,
-                                       interaction=INTERACTION.folder._data)
-    else:
-        row_index, ids = study_indexes(phenotype=PHEN.folder._data,
-                                       genotype=GEN.folder._data,
-                                       covariates=COV.folder._data)
+    ids, row_index = intersect(COV, GEN, INTERACTION, PHEN)
 
     metadata = {'id': ids, 'MAF': [], 'filter': [], 'names': [], 'phenotype': [], 'interaction_names': []}
 
@@ -117,6 +109,20 @@ def partial_derivatives(save_path=None, COV=None, PHEN=None, GEN=None, INTERACTI
                                    metadata, row_index)
 
         print ('Time to PD genotype {} is {} s'.format(genotype.shape, t_gen.secs))
+
+@profile
+def intersect(COV, GEN, INTERACTION, PHEN):
+    if INTERACTION:
+        row_index, ids = study_indexes(phenotype=PHEN.folder._data,
+                                       genotype=GEN.folder._data,
+                                       covariates=COV.folder._data,
+                                       interaction=INTERACTION.folder._data)
+    else:
+        row_index, ids = study_indexes(phenotype=PHEN.folder._data,
+                                       genotype=GEN.folder._data,
+                                       covariates=COV.folder._data)
+    return ids, row_index
+
 
 @profile
 def get_phenotype_pd(COV, INTERACTION, MAP, PHEN, covariates, intercept, metadata, row_index, save_path, study_name):
