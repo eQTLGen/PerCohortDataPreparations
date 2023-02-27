@@ -63,46 +63,14 @@ def partial_derivatives(save_path=None, COV=None, PHEN=None, GEN=None, INTERACTI
     metadata = {'id': ids, 'MAF': [], 'filter': [], 'names': [], 'phenotype': [], 'interaction_names': []}
 
     # TODO (mid) add parameter to compute PD only for new phenotypes or cov
-    b_cov = []
-    C = []
+
     a_test = []
     b4 = []
 
     covariates = COV.get_next(index=row_index[2])  # Does this only support covariate files up to the max chunk size?
     interactions = INTERACTION.get_next(index=row_index[3]) if INTERACTION else np.empty((0,0))
 
-    if MAP.cluster == 'n' or MAP.node[1] == 1:
-        if intercept:
-            metadata['names'].append(study_name + '_intercept')
-        metadata['names'] = metadata['names'] + [study_name + '_' + i for i in COV.folder._data.get_names()]
-        if INTERACTION:
-            metadata['interaction_names'] = metadata['interaction_names'] + [study_name + '_' + i for i in INTERACTION.folder._data.get_names()]
-
-        a_cov = A_covariates(covariates, intercept=intercept)
-        np.save(os.path.join(save_path, study_name + '_a_cov.npy'), a_cov)
-
-        with Timer() as t_phen:
-
-            while True:
-
-                phenotype = PHEN.get_next(index=row_index[1])
-                if isinstance(phenotype, type(None)):
-                    b_cov = np.concatenate(b_cov, axis=1)
-                    C = np.concatenate(C, axis=0)
-                    np.save(os.path.join(save_path, study_name + '_b_cov.npy'), b_cov)
-                    np.save(os.path.join(save_path, study_name + '_C.npy'), C)
-                    break
-                # Moved to commented line below the outside of this while loop as the names
-                # are not sliced like the 'PHEN.get_next(...)' does for phenotype.
-                # This solves an exception being thrown when a larger number of samples is used. (> 1000)
-                # metadata['phenotype'] = metadata['phenotype'] + list(PHEN.folder._data.get_names())
-                b_cov.append(B_covariates(covariates, phenotype, intercept=intercept))
-                C.append(C_matrix(phenotype))
-
-            # Moved from the while loop above to fix bug. See ^^^ for more.
-            metadata['phenotype'] = metadata['phenotype'] + list(PHEN.folder._data.get_names())
-
-        print ('Time to PD phenotype {} is {} s'.format(np.array(C).shape, t_phen.secs))
+    get_phenotype_pd(COV, INTERACTION, MAP, PHEN, covariates, intercept, metadata, row_index, save_path, study_name)
 
     if MAP.cluster == 'y':
         f_max = np.max([int(f.split('_')[0]) for f in GEN.folder.files])
@@ -119,7 +87,7 @@ def partial_derivatives(save_path=None, COV=None, PHEN=None, GEN=None, INTERACTI
             N_snps_read += GEN.folder.get_info(file)['shape'][0]
     else:
         N_snps_read = 0
-        files2read = None
+        files2read=None
     while True:
         with Timer() as t_gen:
             genotype = get_gen(GEN, MAP, files2read)
@@ -149,6 +117,44 @@ def partial_derivatives(save_path=None, COV=None, PHEN=None, GEN=None, INTERACTI
                                    metadata, row_index)
 
         print ('Time to PD genotype {} is {} s'.format(genotype.shape, t_gen.secs))
+
+@profile
+def get_phenotype_pd(COV, INTERACTION, MAP, PHEN, covariates, intercept, metadata, row_index, save_path, study_name):
+    b_cov = []
+    C = []
+    if MAP.cluster == 'n' or MAP.node[1] == 1:
+        if intercept:
+            metadata['names'].append(study_name + '_intercept')
+        metadata['names'] = metadata['names'] + [study_name + '_' + i for i in COV.folder._data.get_names()]
+        if INTERACTION:
+            metadata['interaction_names'] = metadata['interaction_names'] + [study_name + '_' + i for i in
+                                                                             INTERACTION.folder._data.get_names()]
+
+        a_cov = A_covariates(covariates, intercept=intercept)
+        np.save(os.path.join(save_path, study_name + '_a_cov.npy'), a_cov)
+
+        with Timer() as t_phen:
+
+            while True:
+
+                phenotype = PHEN.get_next(index=row_index[1])
+                if isinstance(phenotype, type(None)):
+                    b_cov = np.concatenate(b_cov, axis=1)
+                    C = np.concatenate(C, axis=0)
+                    np.save(os.path.join(save_path, study_name + '_b_cov.npy'), b_cov)
+                    np.save(os.path.join(save_path, study_name + '_C.npy'), C)
+                    break
+                # Moved to commented line below the outside of this while loop as the names
+                # are not sliced like the 'PHEN.get_next(...)' does for phenotype.
+                # This solves an exception being thrown when a larger number of samples is used. (> 1000)
+                # metadata['phenotype'] = metadata['phenotype'] + list(PHEN.folder._data.get_names())
+                b_cov.append(B_covariates(covariates, phenotype, intercept=intercept))
+                C.append(C_matrix(phenotype))
+
+            # Moved from the while loop above to fix bug. See ^^^ for more.
+            metadata['phenotype'] = metadata['phenotype'] + list(PHEN.folder._data.get_names())
+
+        print('Time to PD phenotype {} is {} s'.format(np.array(C).shape, t_phen.secs))
 
 
 @profile
