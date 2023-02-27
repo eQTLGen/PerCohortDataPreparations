@@ -119,6 +119,7 @@ def partial_derivatives(save_path=None, COV=None, PHEN=None, GEN=None, INTERACTI
             N_snps_read += GEN.folder.get_info(file)['shape'][0]
     else:
         N_snps_read = 0
+        files2read = None
     while True:
         with Timer() as t_gen:
             genotype = get_gen(GEN, MAP, files2read)
