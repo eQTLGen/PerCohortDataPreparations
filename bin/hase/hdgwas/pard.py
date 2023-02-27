@@ -1,6 +1,7 @@
 from hdgwas.hdregression import HASE, A_covariates, A_tests, B_covariates, C_matrix, A_inverse, B4, \
     calculate_variant_dependent_a
 from hdgwas.tools import study_indexes, Timer
+from memory_profiler import profile
 import numpy as np
 import os
 import time
@@ -46,6 +47,7 @@ def merge_PD(path, max_node, study_name):
             os.remove(os.path.join(path, 'node_{}_{}_b4.npy'.format(i, study_name)))
 
 
+@profile
 def partial_derivatives(save_path=None, COV=None, PHEN=None, GEN=None, INTERACTION=None,
                         MAP=None, MAF=None, R2=None, B4_flag=False, study_name=None, intercept=True):
     if INTERACTION:
