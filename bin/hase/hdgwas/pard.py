@@ -121,14 +121,7 @@ def partial_derivatives(save_path=None, COV=None, PHEN=None, GEN=None, INTERACTI
         N_snps_read = 0
     while True:
         with Timer() as t_gen:
-            if MAP.cluster == 'y':
-                if len(files2read) != 0:
-                    file = os.path.join(GEN.folder.path, 'genotype', files2read.pop())
-                    genotype = GEN.folder.read(file)
-                else:
-                    genotype = None
-            else:
-                genotype = GEN.get_next()
+            genotype = get_gen(GEN, MAP, files2read)
             # Save data when no more genotype chunks are to be iterated over.
             if isinstance(genotype, type(None)):
                 if MAP.cluster == 'y':
@@ -151,31 +144,37 @@ def partial_derivatives(save_path=None, COV=None, PHEN=None, GEN=None, INTERACTI
                         b4 = np.concatenate(b4, axis=0)
                         np.save(os.path.join(save_path, study_name + '_b4.npy'), b4)
                 break
-            flip = MAP.flip[GEN.folder.name][N_snps_read:N_snps_read + genotype.shape[0]]
-            N_snps_read += genotype.shape[0]
-            flip_index = (flip == -1)
-            genotype = np.apply_along_axis(lambda x: flip * (x - 2 * flip_index), 0, genotype)
-            genotype = genotype[:, row_index[0]]
-            maf = np.mean(genotype, axis=1) / 2
-            metadata['MAF'] = metadata['MAF'] + list(maf)
-
-            # TODO (low) add interaction
-            # Calculate the variant dependent a (non-constant part of a) with the new function that
-            # also supports the improved
-            a_test.append(calculate_variant_dependent_a(genotype, interactions, covariates, intercept=intercept))
-            # a_test.append(A_tests(covariates.single,genotype,intercept=intercept))
-
-            if B4_flag:
-                # works only when all phenotypes in one chunk, if not, do not use this option!
-                # it would use to much disk space anyway
-                if len([f for f in PHEN.folder.files if f != 'info_dic.npy']) > 1:
-                    print 'pd_full flag disabled!'
-                    B4_flag = False
-                    continue
-                PHEN.folder.processed = 0
-                phenotype = PHEN.get_next(index=row_index[1])
-                # If we would like to create b4 here as well, this also has to be implemented for the interaction part
-                # of b
-                b4.append(B4(phenotype, genotype))
+            genotype = process_gen(GEN, MAP, N_snps_read, a_test, covariates, genotype, interactions, intercept,
+                                   metadata, row_index)
 
         print ('Time to PD genotype {} is {} s'.format(genotype.shape, t_gen.secs))
+
+
+@profile
+def process_gen(GEN, MAP, N_snps_read, a_test, covariates, genotype, interactions, intercept, metadata, row_index):
+    flip = MAP.flip[GEN.folder.name][N_snps_read:N_snps_read + genotype.shape[0]]
+    N_snps_read += genotype.shape[0]
+    flip_index = (flip == -1)
+    genotype = np.apply_along_axis(lambda x: flip * (x - 2 * flip_index), 0, genotype)
+    genotype = genotype[:, row_index[0]]
+    maf = np.mean(genotype, axis=1) / 2
+    metadata['MAF'] = metadata['MAF'] + list(maf)
+    # TODO (low) add interaction
+    # Calculate the variant dependent a (non-constant part of a) with the new function that
+    # also supports the improved
+    a_test.append(calculate_variant_dependent_a(genotype, interactions, covariates, intercept=intercept))
+    # a_test.append(A_tests(covariates.single,genotype,intercept=intercept))
+    return genotype
+
+
+@profile
+def get_gen(GEN, MAP, files2read):
+    if MAP.cluster == 'y':
+        if len(files2read) != 0:
+            file = os.path.join(GEN.folder.path, 'genotype', files2read.pop())
+            genotype = GEN.folder.read(file)
+        else:
+            genotype = None
+    else:
+        genotype = GEN.get_next()
+    return genotype
