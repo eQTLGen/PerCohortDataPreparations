@@ -148,10 +148,10 @@ def calculate_variant_dependent_a(genotype, factor_matrix,
 
 def calculate_dot_product_for_variants(covariates, other_independent_determinant):
     # In the dot einsum notation, labels represent the following:
-    # i: variants
-    # j: individuals (dot product of genotypes, covariates.single)
+    # v: variants
+    # i: individuals (dot product of genotypes, covariates.single)
     # k: different covariates.single
-    sec = np.einsum('ij,ijk->ik', other_independent_determinant, covariates)
+    sec = np.einsum('vi,ik->vk', other_independent_determinant, covariates)
     # (Values get summed along individuals)
     return sec
 
