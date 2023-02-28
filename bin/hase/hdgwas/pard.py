@@ -1,7 +1,6 @@
 from hdgwas.hdregression import HASE, A_covariates, A_tests, B_covariates, C_matrix, A_inverse, B4, \
     calculate_variant_dependent_a
 from hdgwas.tools import study_indexes, Timer
-from memory_profiler import profile
 import numpy as np
 import os
 import time
@@ -47,71 +46,8 @@ def merge_PD(path, max_node, study_name):
             os.remove(os.path.join(path, 'node_{}_{}_b4.npy'.format(i, study_name)))
 
 
-@profile
 def partial_derivatives(save_path=None, COV=None, PHEN=None, GEN=None, INTERACTION=None,
                         MAP=None, MAF=None, R2=None, B4_flag=False, study_name=None, intercept=True):
-    ids, row_index = intersect(COV, GEN, INTERACTION, PHEN)
-
-    metadata = {'id': ids, 'MAF': [], 'filter': [], 'names': [], 'phenotype': [], 'interaction_names': []}
-
-    # TODO (mid) add parameter to compute PD only for new phenotypes or cov
-
-    a_test = []
-    b4 = []
-
-    covariates = COV.get_next(index=row_index[2])  # Does this only support covariate files up to the max chunk size?
-    interactions = INTERACTION.get_next(index=row_index[3]) if INTERACTION else np.empty((0,0))
-
-    get_phenotype_pd(COV, INTERACTION, MAP, PHEN, covariates, intercept, metadata, row_index, save_path, study_name)
-
-    if MAP.cluster == 'y':
-        f_max = np.max([int(f.split('_')[0]) for f in GEN.folder.files])
-        files2read = ['{}_{}.h5'.format(i, study_name) for i in
-                      np.array_split(range(f_max + 1), MAP.node[0])[MAP.node[1] - 1]][::-1]
-        filesdone = []
-        for i in range(MAP.node[1] - 1):
-            filesdone = filesdone + ['{}_{}.h5'.format(i, study_name) for i in
-                                     np.array_split(range(f_max + 1), MAP.node[0])[i]]
-
-        N_snps_read = 0
-        for f in filesdone:
-            file = os.path.join(GEN.folder.path, 'genotype', f)
-            N_snps_read += GEN.folder.get_info(file)['shape'][0]
-    else:
-        N_snps_read = 0
-        files2read=None
-    while True:
-        with Timer() as t_gen:
-            genotype = get_gen(GEN, MAP, files2read)
-            # Save data when no more genotype chunks are to be iterated over.
-            if isinstance(genotype, type(None)):
-                if MAP.cluster == 'y':
-
-                    np.save(os.path.join(save_path, 'node_{}_'.format(MAP.node[1]) + study_name + '_a_test.npy'),
-                            np.concatenate(a_test).astype(np.float64))
-                    np.save(os.path.join(save_path, 'node_{}_'.format(MAP.node[1]) + study_name + '_metadata.npy'),
-                            metadata)
-                    if B4_flag:
-                        b4 = np.concatenate(b4, axis=0)
-                        np.save(os.path.join(save_path, 'node_{}_'.format(MAP.node[1]) + study_name + '_b4.npy'),
-                                b4.astype(np.float64))
-                    if MAP.node[1] == MAP.node[0]:
-                        merge_PD(save_path, MAP.node[0], study_name)
-
-                else:
-                    np.save(os.path.join(save_path, study_name + '_a_test.npy'), np.concatenate(a_test))
-                    np.save(os.path.join(save_path, study_name + '_metadata.npy'), metadata)
-                    if B4_flag:
-                        b4 = np.concatenate(b4, axis=0)
-                        np.save(os.path.join(save_path, study_name + '_b4.npy'), b4)
-                break
-            genotype = process_gen(GEN, MAP, N_snps_read, a_test, covariates, genotype, interactions, intercept,
-                                   metadata, row_index)
-
-        print ('Time to PD genotype {} is {} s'.format(genotype.shape, t_gen.secs))
-
-@profile
-def intersect(COV, GEN, INTERACTION, PHEN):
     if INTERACTION:
         row_index, ids = study_indexes(phenotype=PHEN.folder._data,
                                        genotype=GEN.folder._data,
@@ -121,20 +57,24 @@ def intersect(COV, GEN, INTERACTION, PHEN):
         row_index, ids = study_indexes(phenotype=PHEN.folder._data,
                                        genotype=GEN.folder._data,
                                        covariates=COV.folder._data)
-    return ids, row_index
 
+    metadata = {'id': ids, 'MAF': [], 'filter': [], 'names': [], 'phenotype': [], 'interaction_names': []}
 
-@profile
-def get_phenotype_pd(COV, INTERACTION, MAP, PHEN, covariates, intercept, metadata, row_index, save_path, study_name):
+    # TODO (mid) add parameter to compute PD only for new phenotypes or cov
     b_cov = []
     C = []
+    a_test = []
+    b4 = []
+
+    covariates = COV.get_next(index=row_index[2])  # Does this only support covariate files up to the max chunk size?
+    interactions = INTERACTION.get_next(index=row_index[3]) if INTERACTION else np.empty((0,0))
+
     if MAP.cluster == 'n' or MAP.node[1] == 1:
         if intercept:
             metadata['names'].append(study_name + '_intercept')
         metadata['names'] = metadata['names'] + [study_name + '_' + i for i in COV.folder._data.get_names()]
         if INTERACTION:
-            metadata['interaction_names'] = metadata['interaction_names'] + [study_name + '_' + i for i in
-                                                                             INTERACTION.folder._data.get_names()]
+            metadata['interaction_names'] = metadata['interaction_names'] + [study_name + '_' + i for i in INTERACTION.folder._data.get_names()]
 
         a_cov = A_covariates(covariates, intercept=intercept)
         np.save(os.path.join(save_path, study_name + '_a_cov.npy'), a_cov)
@@ -160,34 +100,80 @@ def get_phenotype_pd(COV, INTERACTION, MAP, PHEN, covariates, intercept, metadat
             # Moved from the while loop above to fix bug. See ^^^ for more.
             metadata['phenotype'] = metadata['phenotype'] + list(PHEN.folder._data.get_names())
 
-        print('Time to PD phenotype {} is {} s'.format(np.array(C).shape, t_phen.secs))
+        print ('Time to PD phenotype {} is {} s'.format(np.array(C).shape, t_phen.secs))
 
-
-@profile
-def process_gen(GEN, MAP, N_snps_read, a_test, covariates, genotype, interactions, intercept, metadata, row_index):
-    flip = MAP.flip[GEN.folder.name][N_snps_read:N_snps_read + genotype.shape[0]]
-    N_snps_read += genotype.shape[0]
-    flip_index = (flip == -1)
-    genotype = np.apply_along_axis(lambda x: flip * (x - 2 * flip_index), 0, genotype)
-    genotype = genotype[:, row_index[0]]
-    maf = np.mean(genotype, axis=1) / 2
-    metadata['MAF'] = metadata['MAF'] + list(maf)
-    # TODO (low) add interaction
-    # Calculate the variant dependent a (non-constant part of a) with the new function that
-    # also supports the improved
-    a_test.append(calculate_variant_dependent_a(genotype, interactions, covariates, intercept=intercept))
-    # a_test.append(A_tests(covariates.single,genotype,intercept=intercept))
-    return genotype
-
-
-@profile
-def get_gen(GEN, MAP, files2read):
     if MAP.cluster == 'y':
-        if len(files2read) != 0:
-            file = os.path.join(GEN.folder.path, 'genotype', files2read.pop())
-            genotype = GEN.folder.read(file)
-        else:
-            genotype = None
+        f_max = np.max([int(f.split('_')[0]) for f in GEN.folder.files])
+        files2read = ['{}_{}.h5'.format(i, study_name) for i in
+                      np.array_split(range(f_max + 1), MAP.node[0])[MAP.node[1] - 1]][::-1]
+        filesdone = []
+        for i in range(MAP.node[1] - 1):
+            filesdone = filesdone + ['{}_{}.h5'.format(i, study_name) for i in
+                                     np.array_split(range(f_max + 1), MAP.node[0])[i]]
+
+        N_snps_read = 0
+        for f in filesdone:
+            file = os.path.join(GEN.folder.path, 'genotype', f)
+            N_snps_read += GEN.folder.get_info(file)['shape'][0]
     else:
-        genotype = GEN.get_next()
-    return genotype
+        N_snps_read = 0
+    while True:
+        with Timer() as t_gen:
+            if MAP.cluster == 'y':
+                if len(files2read) != 0:
+                    file = os.path.join(GEN.folder.path, 'genotype', files2read.pop())
+                    genotype = GEN.folder.read(file)
+                else:
+                    genotype = None
+            else:
+                genotype = GEN.get_next()
+            # Save data when no more genotype chunks are to be iterated over.
+            if isinstance(genotype, type(None)):
+                if MAP.cluster == 'y':
+
+                    np.save(os.path.join(save_path, 'node_{}_'.format(MAP.node[1]) + study_name + '_a_test.npy'),
+                            np.concatenate(a_test).astype(np.float64))
+                    np.save(os.path.join(save_path, 'node_{}_'.format(MAP.node[1]) + study_name + '_metadata.npy'),
+                            metadata)
+                    if B4_flag:
+                        b4 = np.concatenate(b4, axis=0)
+                        np.save(os.path.join(save_path, 'node_{}_'.format(MAP.node[1]) + study_name + '_b4.npy'),
+                                b4.astype(np.float64))
+                    if MAP.node[1] == MAP.node[0]:
+                        merge_PD(save_path, MAP.node[0], study_name)
+
+                else:
+                    np.save(os.path.join(save_path, study_name + '_a_test.npy'), np.concatenate(a_test))
+                    np.save(os.path.join(save_path, study_name + '_metadata.npy'), metadata)
+                    if B4_flag:
+                        b4 = np.concatenate(b4, axis=0)
+                        np.save(os.path.join(save_path, study_name + '_b4.npy'), b4)
+                break
+            flip = MAP.flip[GEN.folder.name][N_snps_read:N_snps_read + genotype.shape[0]]
+            N_snps_read += genotype.shape[0]
+            flip_index = (flip == -1)
+            genotype = np.apply_along_axis(lambda x: flip * (x - 2 * flip_index), 0, genotype)
+            genotype = genotype[:, row_index[0]]
+            maf = np.mean(genotype, axis=1) / 2
+            metadata['MAF'] = metadata['MAF'] + list(maf)
+
+            # TODO (low) add interaction
+            # Calculate the variant dependent a (non-constant part of a) with the new function that
+            # also supports the improved
+            a_test.append(calculate_variant_dependent_a(genotype, interactions, covariates, intercept=intercept))
+            # a_test.append(A_tests(covariates.single,genotype,intercept=intercept))
+
+            if B4_flag:
+                # works only when all phenotypes in one chunk, if not, do not use this option!
+                # it would use to much disk space anyway
+                if len([f for f in PHEN.folder.files if f != 'info_dic.npy']) > 1:
+                    print 'pd_full flag disabled!'
+                    B4_flag = False
+                    continue
+                PHEN.folder.processed = 0
+                phenotype = PHEN.get_next(index=row_index[1])
+                # If we would like to create b4 here as well, this also has to be implemented for the interaction part
+                # of b
+                b4.append(B4(phenotype, genotype))
+
+        print ('Time to PD genotype {} is {} s'.format(genotype.shape, t_gen.secs))

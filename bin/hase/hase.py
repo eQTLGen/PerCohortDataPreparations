@@ -4,8 +4,6 @@ import sys
 import os
 import numpy as np
 
-from memory_profiler import profile
-
 from config import MAPPER_CHUNK_SIZE, basedir, CONVERTER_SPLIT_SIZE, PYTHON_PATH
 from hdgwas.meta_classic import CohortAnalyser
 from hdgwas.meta_classic import ClassicMetaAnalyser
@@ -98,26 +96,16 @@ def main(argv=None):
     # ADDITIONAL SETTINGS
     parser.add_argument(
         "-snp_id_inc", type=str, nargs='+',
-        help="path to file with SNPs id to include in analysis")
+        help="path to file with SNPs id to include to analysis")
     parser.add_argument(
         "-snp_id_exc", type=str, nargs='+',
         help="path to file with SNPs id to exclude from analysis")
     parser.add_argument(
         "-ph_id_inc", type=str, nargs='+',
-        help="path to file with phenotype id to include in analysis")
+        help="path to file with phenotype id to exclude from analysis")
     parser.add_argument(
         "-ph_id_exc", type=str, nargs='+',
         help="path to file with phenotype id to exclude from analysis")
-
-    # Logging of per-cohort results
-    parser.add_argument(
-        "-snp_id_log", type=str, nargs='+',
-        help="path to file with SNP ids for which to log per-cohort results."
-             "Only used with classic meta-analysis")
-    parser.add_argument(
-        "-ph_id_log", type=str, nargs='+',
-        help="path to file with phenotype ids for which to log per-cohort results."
-             "Only used with classic meta-analysis")
 
     # parser.add_argument("-ind_id_inc", type=str, help="path to file with individuals id to include to analysis") #TODO (low)
     # parser.add_argument("-ind_id_exc", type=str, help="path to file with individuals id to exclude from analysis")#TODO (low)
@@ -336,7 +324,15 @@ def main(argv=None):
 
     elif args.mode == 'single-meta':
 
-        mapper = get_mapper(MAPPER_CHUNK_SIZE, args)
+        # ARG_CHECKER.check(args,mode='single-meta')
+        mapper = Mapper()
+        mapper.genotype_names = args.study_name
+        mapper.chunk_size = MAPPER_CHUNK_SIZE
+        mapper.reference_name = args.ref_name
+        mapper.load_flip(args.mapper)
+        mapper.load(args.mapper)
+        mapper.cluster = args.cluster
+        mapper.node = args.node
 
         phen = Reader('phenotype')
         phen.start(args.phenotype[0])
@@ -557,7 +553,7 @@ def main(argv=None):
             if args.allow_missingness:
                 a_inv = a_inverse_extended_allow_missingness(a_test, a_cov_stack, variant_indices)
             else:
-                a_inv, _ = get_a_inverse_extended(a_cov, a_test)
+                a_inv = get_a_inverse_extended(a_cov, a_test)
 
             number_of_variable_terms = a_test.shape[2]
             number_of_constant_terms = a_inv.shape[1] - number_of_variable_terms
@@ -666,7 +662,7 @@ def main(argv=None):
             for i, j in enumerate(args.derivatives):
                 partial_derivatives_folders.append(Reader('partial'))
                 partial_derivatives_folders[i].start(j, study_name=args.study_name[i])
-                partial_derivatives_folders[i].folder.load(into_memory=False)
+                partial_derivatives_folders[i].folder.load()
 
         print("Time used to load partial derivatives is {}s".format(t.secs))
 
@@ -689,9 +685,7 @@ def main(argv=None):
 
         meta_pard = MetaParData(partial_derivatives_folders, args.study_name,
                                 protocol=protocol,
-                                allow_missingness=args.allow_missingness,
-                                match_covs=False)
-        # Do nothing with cov order
+                                allow_missingness=args.allow_missingness)
 
         is_no_b4_present_in_partial_derivatives = np.sum(b4_presence_per_study) == 0
         if not is_no_b4_present_in_partial_derivatives:
@@ -736,12 +730,12 @@ def main(argv=None):
         covariate_indices = None
         if args.covariate_indices:
 
-            covariate_indices = dict()
-            with open(args.covariate_indices) as opened:
-                for line in opened:
-                    split_line = line.strip().split("\t")
-                    covariate_indices[split_line[0]] = (
-                        np.array([int(index) for index in split_line[1:]]))
+            covariate_indices_df = pd.read_csv(
+                args.covariate_indices,
+                sep="\t", header=None, dtype=str, index_col=0)
+
+            covariate_indices = covariate_indices_df.apply(
+                lambda col: col.astype(np.float), axis=1).T.to_dict('list')
 
             for key, indices in covariate_indices.items():
                 if np.min(indices) < 1:
@@ -751,17 +745,11 @@ def main(argv=None):
                             key
                         ))
 
-        variants_to_log = None
-        pheno_to_log = None
-        if args.snp_id_log is not None:
-            variants_to_log = Mapper.load_variant_filter_dataframes(args.snp_id_log, (("ID",),))
-        if args.ph_id_log is not None:
-            pheno_to_log = Mapper.load_variant_filter_dataframes(args.ph_id_log, (("ID",),))
+                covariate_indices[key] = np.array(indices).astype(int)
 
         classic_meta_analyser = ClassicMetaAnalyser(
             meta_phen, meta_pard, intersecting_identifiers, row_index,
             args.study_name, args.out,
-            variants_full_log=variants_to_log, pheno_full_log=pheno_to_log,
             covariate_indices=covariate_indices, maf_threshold=args.maf,
             t_statistic_threshold=args.thr)
 
@@ -887,20 +875,6 @@ def main(argv=None):
     end = time.time()
 
     print ('experiment finished in {} s'.format((end - start)))
-
-
-@profile
-def get_mapper(MAPPER_CHUNK_SIZE, args):
-    # ARG_CHECKER.check(args,mode='single-meta')
-    mapper = Mapper()
-    mapper.genotype_names = args.study_name
-    mapper.chunk_size = MAPPER_CHUNK_SIZE
-    mapper.reference_name = args.ref_name
-    mapper.load_flip(args.mapper)
-    mapper.load(args.mapper)
-    mapper.cluster = args.cluster
-    mapper.node = args.node
-    return mapper
 
 
 def load_mapper(mapper_chunk_size, study_name, ref_name,
