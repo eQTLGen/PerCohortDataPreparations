@@ -104,10 +104,11 @@ def calculate_variant_dependent_a(genotype, factor_matrix,
     variable_term_index = 0
     # Have to add extra columns to the covariates.single
 
-    covariates = np.tile(covariates, (genotype.shape[0],1,1))
+    #covariates = np.tile(covariates, (genotype.shape[0],1,1))
 
     # Loop through the columns of the factor matrix
     for factor_column in factor_matrix.T:
+        raise NotImplementedError("Interactions not yet implemented")
         # Multiply the genotypes with the factor column
         interaction_values = genotype * factor_column
         # This creates a 2d array with columns representing the
