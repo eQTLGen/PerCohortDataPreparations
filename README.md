@@ -73,6 +73,12 @@ NXF_VER=21.10.6 ${nextflow_path}/nextflow run PerCohortDataPreparations.nf \
 
 You can save the modified script version to informative name, e.g. `submit_per_cohort_preparations_[**CohortName_PlatformName**].sh`.
 
+You can select HPC scheduler type by adjusting the profile as following:
+
+Slurm: `-profile slurm,singularity`
+PBS/TORQUE: `-profile pbs,singularity`
+SGE: `-profile sge,singularity`
+
 Then submit the job `sbatch submit_per_cohort_preparations_[**CohortName_PlatformName**].sh`. This initiates pipeline, makes analysis environment (using singularity or conda) and automatically submits the steps in correct order and parallel way. Separate `work` directory is made to the folder and contains all interim files.
 
 ### Monitoring and debugging
@@ -83,7 +89,7 @@ Then submit the job `sbatch submit_per_cohort_preparations_[**CohortName_Platfor
 - If the pipeline crashes (e.g. due to walltime), you can just resubmit the same script after the fixes. Nextflow does not rerun completed steps and continues only from the steps which had not completed.
 - When the work has finished, download and check the job report. This file  is automatically written to your output folder `pipeline_info` subfolder, for potential errors or warnings. E.g. `output/pipeline_info/DataQcReport.html`.
 - When you need to do some debugging, then you can use the last section of aforementioned report to figure out in which subfolder from `work` folder the actual step was run. You can then navigate to this folder and investigate the following hidden files:
-  - `.command.sh`: script which was submitted
+  - `.command.sh`: script which was submitted.
   - `.command.log`: log file for seeing the analysis outputs/errors.
   - `.command.err`: file which lists the errors, if any.
 
