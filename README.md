@@ -75,9 +75,9 @@ You can save the modified script version to informative name, e.g. `submit_per_c
 
 You can select HPC scheduler type by adjusting the profile as following:
 
-Slurm: `-profile slurm,singularity`
-PBS/TORQUE: `-profile pbs,singularity`
-SGE: `-profile sge,singularity`
+- Slurm: `-profile slurm,singularity`
+- PBS/TORQUE: `-profile pbs,singularity`
+- SGE: `-profile sge,singularity`
 
 Then submit the job `sbatch submit_per_cohort_preparations_[**CohortName_PlatformName**].sh`. This initiates pipeline, makes analysis environment (using singularity or conda) and automatically submits the steps in correct order and parallel way. Separate `work` directory is made to the folder and contains all interim files.
 
