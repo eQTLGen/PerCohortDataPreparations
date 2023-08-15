@@ -1077,7 +1077,7 @@ class CSVFolder(Folder):
         else:
             print 'reading file {}'.format(file)
             for i in ['\t', ' ']:
-                df = pd.read_csv(os.path.join(self.path, file), sep=i, index_col=None)
+                df = pd.read_csv(os.path.join(self.path, file), sep=i, index_col=None, dtype={0: str})
                 if df.shape[1] > 1:
                     break
             else:
