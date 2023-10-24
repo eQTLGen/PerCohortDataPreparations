@@ -28,7 +28,7 @@ print 'The name of the cohort is: ' + cohort
 individuals = h5py.File(args.IntermediateFilesEncoded + '/EncodedGenotypeData/individuals/' + cohort + '.h5', 'r+')
 
 # Encoded gene expression file
-exp = pd.read_csv(args.IntermediateFilesEncoded + '/EncodedPhenotypeData/0_' + cohort + '.csv', sep = "\t")
+exp = pd.read_csv(args.IntermediateFilesEncoded + '/EncodedPhenotypeData/0_' + cohort + '.csv', sep = "\t", dtype={0:str})
 # exp.to_csv(path_or_buf = '/gpfs/hpc/GV/Projects/eQTLGenPhase2/test_HASE_IncompleteData/args.IntermediateFilesEncoded_to_upload2/EncodedPhenotypeData/0_EGCUT_IlluminaArray990.csv', sep = "\t", index = False)
 metadata = np.load(args.IntermediateFilesEncoded + '/pd_shared/' + cohort + '_metadata.npy')
 
@@ -36,6 +36,7 @@ metadata = np.load(args.IntermediateFilesEncoded + '/pd_shared/' + cohort + '_me
 GenIds = []
 for i in range(len(individuals["individuals/table"][:])):
 	GenIds.append(individuals["individuals/table"][:][i][1][0])
+
 # phenotype IDs
 PhenIds = []
 for i in range(exp["id"].shape[0]):
@@ -56,6 +57,8 @@ individuals.close()
 ## Replace sample IDs in genotype data
 # Encoded genotype individuals file.
 # Sample ID length is 100 max
+
+assert len(PhenIds) == len(old_to_new_dict), "Sample identifiers are misaligned! expected {} unique samples but observed {}".format(len(PhenIds), len(old_to_new_dict))
 
 # Replace genotype IDs
 GenIds = [old_to_new_dict.get(item,item) for item in GenIds]
