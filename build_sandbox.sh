@@ -21,5 +21,4 @@ export NXF_HOME="../../nextflowcache"
 export TMPDIR="../../singularitytmp"
 export SINGULARITY_TMPDIR="../../singularitytmp"
 
-singularity pull singularity_img/quay.io-eqtlgen-eqtlgen_phase2-v1.8.img docker://quay.io/eqtlgen/eqtlgen_phase2:v1.8
 singularity build --sandbox singularity_img/quay.io-eqtlgen-eqtlgen_phase2-v1.8-sbox singularity_img/quay.io-eqtlgen-eqtlgen_phase2-v1.8.img
